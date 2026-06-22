@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../data/vin_decoder_service.dart';
 import 'package:flutter/services.dart';
 import '../screens/vin_scanner_overlay.dart';
@@ -30,8 +31,14 @@ class _AddCarDialogState extends State<AddCarDialog> {
 
   Future<void> _saveVehicle() async {
     final vin = _vinController.text.trim();
-    if (vin.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('VIN cannot be empty')));
+    final RegExp vinRegex = RegExp(r'^[a-zA-Z0-9]+$');
+    if (vin.length != 17 || !vinRegex.hasMatch(vin)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('გთხოვთ შეიყვანოთ ვალიდური 17-ნიშნა VIN კოდი'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
       return;
     }
 
@@ -61,10 +68,11 @@ class _AddCarDialogState extends State<AddCarDialog> {
         'model': model,
         'year': year,
         'engine_type': engineType,
+        'user_id': user.id,
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Added \$year \$make \$model!')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Vehicle saved: $year $make $model')));
         Navigator.of(context).pop(true);
       }
     } on PostgrestException catch (e) {
@@ -97,12 +105,12 @@ class _AddCarDialogState extends State<AddCarDialog> {
         insetPadding: const EdgeInsets.all(20),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1E1E1E).withOpacity(0.95),
+            color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            border: Border.all(color: Theme.of(context).dividerColor),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.3),
                 blurRadius: 20,
                 spreadRadius: 5,
               ),
@@ -118,17 +126,17 @@ class _AddCarDialogState extends State<AddCarDialog> {
                   children: [
                     const Icon(Icons.qr_code_scanner, color: Color(0xFF0F62FE), size: 28),
                     const SizedBox(width: 12),
-                    const Text(
+                    Text(
                       'Add Vehicle',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Theme.of(context).textTheme.titleLarge?.color ?? Colors.white,
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white54),
+                      icon: Icon(Icons.close, color: Theme.of(context).textTheme.bodySmall?.color ?? Colors.white54),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
@@ -140,16 +148,16 @@ class _AddCarDialogState extends State<AddCarDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Enter or scan your 17-digit VIN. We will automatically decode your vehicle profile.',
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                      style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.white70, fontSize: 14),
                     ),
                     const SizedBox(height: 24),
                     
                     // Sleek VIN TextField
                     TextFormField(
                       controller: _vinController,
-                      style: const TextStyle(color: Colors.white, fontSize: 18, letterSpacing: 2, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: Theme.of(context).textTheme.titleLarge?.color ?? Colors.white, fontSize: 18, letterSpacing: 2, fontWeight: FontWeight.w600),
                       textCapitalization: TextCapitalization.characters,
                       inputFormatters: [
                         LengthLimitingTextInputFormatter(17),
@@ -157,9 +165,9 @@ class _AddCarDialogState extends State<AddCarDialog> {
                       ],
                       decoration: InputDecoration(
                         hintText: '17-DIGIT VIN',
-                        hintStyle: TextStyle(color: Colors.white.withOpacity(0.2), letterSpacing: 2),
+                        hintStyle: TextStyle(color: Theme.of(context).hintColor, letterSpacing: 2),
                         filled: true,
-                        fillColor: Colors.black26,
+                        fillColor: Theme.of(context).colorScheme.surface,
                         contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -172,7 +180,7 @@ class _AddCarDialogState extends State<AddCarDialog> {
                         suffixIcon: Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: Material(
-                            color: const Color(0xFF0F62FE).withOpacity(0.2),
+                            color: AppTheme.primaryBlue.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
                             child: InkWell(
                               onTap: _openScanner,
@@ -191,7 +199,7 @@ class _AddCarDialogState extends State<AddCarDialog> {
                 ),
               ),
               
-              const Divider(height: 1, color: Colors.white10),
+              Divider(height: 1, color: Theme.of(context).dividerColor),
               Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: SizedBox(
@@ -199,15 +207,15 @@ class _AddCarDialogState extends State<AddCarDialog> {
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _saveVehicle,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0F62FE),
-                      foregroundColor: Colors.white,
+                      backgroundColor: AppTheme.primaryBlue,
+                      foregroundColor: Theme.of(context).textTheme.titleLarge?.color ?? Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       elevation: 0,
                     ),
                     child: _isSaving 
-                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('DECODE & SAVE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2)),
+                        ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.onPrimary))
+                        : Text('DECODE & SAVE', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2)),
                   ),
                 ),
               ),
