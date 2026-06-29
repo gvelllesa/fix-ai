@@ -15,7 +15,8 @@ class VoiceCallScreen extends StatefulWidget {
   State<VoiceCallScreen> createState() => _VoiceCallScreenState();
 }
 
-class _VoiceCallScreenState extends State<VoiceCallScreen> {
+class _VoiceCallScreenState extends State<VoiceCallScreen>
+    with WidgetsBindingObserver {
   bool _isConnected = false;
   String _currentAiTranscription = "Waiting for AI response...";
 
@@ -27,6 +28,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
   @override
   void initState() {
     super.initState();
+    // 3.9 FIX: observe lifecycle so we suspend the mic stream on background.
+    WidgetsBinding.instance.addObserver(this);
 
 
     _geminiService = GeminiLiveCallService(
@@ -53,7 +56,27 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
       return;
     }
 
-    await _geminiService.connect();
+    // H3 FIX (audit): the Gemini Live WebSocket connect() has no built-in
+    // timeout, so a dead endpoint would leave this await pending and the
+    // screen spinning. Bound it explicitly.
+    try {
+      await _geminiService.connect()
+          .timeout(const Duration(seconds: 15));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Call connection failed: $e')));
+      }
+      return;
+    }
+
+    // H3 FIX (audit): guard before setState. The awaited connect() can take
+    // many seconds; if the user backed out (or the OS suspended the activity)
+    // during that window, the widget is disposed and setState would throw
+    // "setState() called after dispose()" — and crash the call flow in
+    // release. The sibling _updateSubtitles already does this; this was an
+    // oversight.
+    if (!mounted) return;
     setState(() {
       _isConnected = true;
     });
@@ -75,13 +98,21 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
     }
   }
 
+  // M1 FIX (audit): this callback is typed `void Function(Uint8List)?` on the
+  // service side, but declared `async` here and awaits _audioPlayer.play().
+  // Returning a Future from a `void Function` drops it, so any throw inside
+  // (malformed PCM in the hand-built WAV header, a decoder error) becomes an
+  // unhandled async error in the root zone instead of routing through
+  // onError. We now guard the await with try/catch and a mounted check so
+  // playback failures after the screen is gone are swallowed cleanly.
   void _handleAudioPlayback(Uint8List audioBytes) async {
+    if (!mounted) return;
     debugPrint('Received ${audioBytes.length} bytes of raw audio from AI');
     int sampleRate = 16000;
     int channels = 1;
     int byteRate = sampleRate * channels * 2;
     var header = ByteData(44);
-    
+
     header.setUint8(0, 82); header.setUint8(1, 73); header.setUint8(2, 70); header.setUint8(3, 70);
     header.setUint32(4, 36 + audioBytes.length, Endian.little);
     header.setUint8(8, 87); header.setUint8(9, 65); header.setUint8(10, 86); header.setUint8(11, 69);
@@ -99,8 +130,17 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
     var builder = BytesBuilder();
     builder.add(header.buffer.asUint8List());
     builder.add(audioBytes);
-    
-    await _audioPlayer.play(BytesSource(builder.toBytes()));
+
+    try {
+      await _audioPlayer.play(BytesSource(builder.toBytes()));
+    } catch (e) {
+      // Don't let a bad audio chunk crash the call — route it to the user.
+      debugPrint('VoiceCallScreen: audio playback failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Audio playback error: $e')));
+      }
+    }
   }
 
   void _updateSubtitles(String text) {
@@ -117,10 +157,18 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
       _isConnected = false;
       _currentAiTranscription = "Call Ended";
     });
-    
+
+    // Cancel the mic stream synchronously first so no more audio chunks are
+    // piped into a service we are about to tear down.
     _recordStreamSubscription?.cancel();
-    _geminiService.disconnect();
-    
+    _recordStreamSubscription = null;
+    // M2 FIX (audit): disconnect() is async (it awaits the WebSocket sink
+    // close). Fire-and-forget but swallow errors so a teardown failure can't
+    // surface as an uncaught async exception.
+    unawaited(_geminiService.disconnect().catchError((Object e) {
+      debugPrint('VoiceCallScreen: endCall disconnect error: $e');
+    }));
+
     if (mounted && Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
     }
@@ -128,11 +176,31 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
 
   @override
   void dispose() {
+    // 3.9 FIX: remove lifecycle observer
+    WidgetsBinding.instance.removeObserver(this);
     _recordStreamSubscription?.cancel();
     _audioRecorder.dispose();
     _audioPlayer.dispose();
-    _geminiService.disconnect();
+    // M2 FIX (audit): disconnect() is async; capture the future and ignore
+    // failures rather than letting an in-flight WebSocket close race the
+    // widget teardown (which could otherwise invoke onAudioReceived against
+    // a disposed player).
+    unawaited(_geminiService.disconnect().catchError((Object e) {
+      debugPrint('VoiceCallScreen: dispose disconnect error: $e');
+    }));
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 3.9 FIX: suspend the mic stream immediately when backgrounded — the OS
+    // is about to suspend the WebSocket and any buffered PCM chunks leak.
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _recordStreamSubscription?.cancel();
+      _recordStreamSubscription = null;
+      _audioRecorder.stop();
+    }
   }
 
   @override
