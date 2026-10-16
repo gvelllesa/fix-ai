@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 class AdapterEndpoint {
   final String host;
@@ -74,6 +75,7 @@ class EnetHsfzProtocol {
 
   bool _isDoIpMode = false;
   bool get isConnected => _socket != null;
+  static const MethodChannel _netBindChannel = MethodChannel('fixai/netbind');
 
   /// Sweeps candidate IPs and ports [35000, 6801, 13400, 50160] to detect active BMW adapter
   Future<AdapterEndpoint?> detectAdapter({String? preferredHost}) async {
@@ -112,6 +114,15 @@ class EnetHsfzProtocol {
   }) async {
     await disconnect();
     _isDoIpMode = useDoip ?? (port == 13400);
+
+    // On Android, force traffic through Wi-Fi adapter even when no internet connection is present
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      try {
+        await _netBindChannel.invokeMethod('bindWifi');
+      } catch (e) {
+        debugPrint('[ENET-HSFZ] Network bind notice: $e');
+      }
+    }
 
     try {
       debugPrint('[ENET-HSFZ] Connecting to $host:$port (DoIP=$_isDoIpMode)...');
@@ -570,6 +581,11 @@ class EnetHsfzProtocol {
   }
 
   Future<void> disconnect() async {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      try {
+        await _netBindChannel.invokeMethod('unbind');
+      } catch (_) {}
+    }
     await _subscription?.cancel();
     _subscription = null;
     _socket?.destroy();
