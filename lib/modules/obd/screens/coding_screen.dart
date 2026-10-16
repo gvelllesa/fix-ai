@@ -4,6 +4,8 @@ import '../services/protocols/enet_hsfz_protocol.dart';
 import '../services/bmw_coding_service.dart';
 import '../services/bmw_ecu_scanner.dart';
 import '../widgets/advanced_connection_dialog.dart';
+import '../widgets/slide_to_confirm.dart';
+import '../widgets/link_status_bar.dart';
 
 /// BMW 1-Tap FDL Cheat-Code Coding & Deep Diagnostics Screen
 ///
@@ -564,18 +566,27 @@ class _CodingScreenState extends State<CodingScreen>
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('CANCEL', style: TextStyle(color: Colors.white54)),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _neonGreen,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SlideToConfirm(
+                    label: 'SLIDE TO WRITE VO TO CAS/FEM',
+                    confirmedLabel: 'VO WRITE AUTHORIZED',
+                    sliderColor: _neonGreen,
+                    icon: Icons.save_alt,
+                    isEnabled: !isVoltageLow,
+                    onConfirmed: () => Navigator.pop(ctx, true),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('CANCEL', style: TextStyle(color: Colors.white54)),
+                  ),
+                ],
               ),
-              child: const Text('PROCEED WITH VO FLASH', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -1922,13 +1933,23 @@ class _CodingScreenState extends State<CodingScreen>
       ),
       body: Stack(
         children: [
-          TabBarView(
-            controller: _tabController,
+          Column(
             children: [
-              _buildCheatCodesTab(),
-              _buildVehicleOrderTab(),
-              _buildShadowMemoryTab(),
-              _buildBackupsTab(),
+              LinkStatusBar(
+                flashProgress: _isBusy && _busyProgress > 0 ? _busyProgress : null,
+                flashStage: _isBusy ? _busyMessage : null,
+              ),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildCheatCodesTab(),
+                    _buildVehicleOrderTab(),
+                    _buildShadowMemoryTab(),
+                    _buildBackupsTab(),
+                  ],
+                ),
+              ),
             ],
           ),
           if (_isBusy || _isShadowScanning) _buildBusyOverlay(),

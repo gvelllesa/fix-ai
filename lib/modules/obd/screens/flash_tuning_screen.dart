@@ -9,6 +9,8 @@ import '../services/bmw_live_actuator.dart';
 import '../services/bmw_flash_manager.dart';
 import '../services/bmw_custom_rom_service.dart';
 import '../services/protocols/enet_hsfz_protocol.dart';
+import '../widgets/slide_to_confirm.dart';
+import '../widgets/link_status_bar.dart';
 
 class FlashTuningScreen extends StatefulWidget {
   final EnetHsfzProtocol? activeProtocol;
@@ -773,61 +775,55 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
                           const SizedBox(width: 12),
                           Expanded(
                             flex: 2,
-                            child: ElevatedButton.icon(
-                              onPressed: (FeatureFlags.kFlashEnabled && preFlight.passed)
-                                  ? () async {
-                                      setModalState(() => _isFlashing = true);
-                                      setState(() => _isFlashing = true);
-                                      await FlashOsGuard.instance.acquire();
-                                      _flashSubscription?.cancel();
-                                      _flashSubscription = _flashManager.executeFlash(options: _options).listen(
-                                        (event) {
-                                          if (!mounted) return;
-                                          final progress = (event['progress'] as num?)?.toDouble() ?? 0.0;
-                                          final msg = (event['message'] as String?) ?? '';
-                                          setModalState(() {
-                                            _flashProgress = progress;
-                                            _flashStatus = msg;
-                                          });
-                                          setState(() {
-                                            _flashProgress = progress;
-                                            _flashStatus = msg;
-                                          });
+                            child: SlideToConfirm(
+                              label: 'SLIDE TO FLASH DME',
+                              confirmedLabel: 'FLASHING...',
+                              sliderColor: const Color(0xFF00E676),
+                              icon: Icons.flash_on,
+                              isEnabled: (FeatureFlags.kFlashEnabled && preFlight.passed),
+                              currentRpm: preFlight.isIgnitionOnEngineOff ? 0.0 : 800.0,
+                              onConfirmed: () async {
+                                setModalState(() => _isFlashing = true);
+                                setState(() => _isFlashing = true);
+                                await FlashOsGuard.instance.acquire();
+                                _flashSubscription?.cancel();
+                                _flashSubscription = _flashManager.executeFlash(options: _options).listen(
+                                  (event) {
+                                    if (!mounted) return;
+                                    final progress = (event['progress'] as num?)?.toDouble() ?? 0.0;
+                                    final msg = (event['message'] as String?) ?? '';
+                                    setModalState(() {
+                                      _flashProgress = progress;
+                                      _flashStatus = msg;
+                                    });
+                                    setState(() {
+                                      _flashProgress = progress;
+                                      _flashStatus = msg;
+                                    });
 
-                                          if (event['step'] == 'COMPLETE' || event['step'] == 'FAILED' || event['step'] == 'SAFETY_LOCK') {
-                                            FlashOsGuard.instance.release();
-                                            setModalState(() => _isFlashing = false);
-                                            setState(() => _isFlashing = false);
-                                          }
-                                        },
-                                        onError: (err) {
-                                          FlashOsGuard.instance.release();
-                                          if (!mounted) return;
-                                          setModalState(() {
-                                            _isFlashing = false;
-                                            _flashStatus = 'შეცდომა: $err';
-                                          });
-                                          setState(() {
-                                            _isFlashing = false;
-                                            _flashStatus = 'შეცდომა: $err';
-                                          });
-                                        },
-                                        onDone: () {
-                                          FlashOsGuard.instance.release();
-                                        },
-                                      );
+                                    if (event['step'] == 'COMPLETE' || event['step'] == 'FAILED' || event['step'] == 'SAFETY_LOCK') {
+                                      FlashOsGuard.instance.release();
+                                      setModalState(() => _isFlashing = false);
+                                      setState(() => _isFlashing = false);
                                     }
-                                  : null,
-                              icon: const Icon(Icons.flash_on, color: Colors.black),
-                              label: const Text(
-                                'Write to DME Flash',
-                                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.greenAccent,
-                                disabledBackgroundColor: Colors.grey.shade800,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                              ),
+                                  },
+                                  onError: (err) {
+                                    FlashOsGuard.instance.release();
+                                    if (!mounted) return;
+                                    setModalState(() {
+                                      _isFlashing = false;
+                                      _flashStatus = 'შეცდომა: $err';
+                                    });
+                                    setState(() {
+                                      _isFlashing = false;
+                                      _flashStatus = 'შეცდომა: $err';
+                                    });
+                                  },
+                                  onDone: () {
+                                    FlashOsGuard.instance.release();
+                                  },
+                                );
+                              },
                             ),
                           ),
                         ],
@@ -902,12 +898,22 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _buildCustomRomMultimapTab(),
-          _buildFlashCalibrationTab(),
-          _buildLiveActuatorsTab(),
+          LinkStatusBar(
+            flashProgress: _isFlashing ? _flashProgress : null,
+            flashStage: _isFlashing ? _flashStatus : null,
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildCustomRomMultimapTab(),
+                _buildFlashCalibrationTab(),
+                _buildLiveActuatorsTab(),
+              ],
+            ),
+          ),
         ],
       ),
     );

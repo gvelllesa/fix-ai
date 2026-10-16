@@ -4,6 +4,21 @@ import '../services/live_telemetry_service.dart';
 import '../services/bmw_sensor_registry.dart';
 import '../services/bmw_live_actuator.dart';
 import '../services/actuation_guard.dart';
+import '../widgets/link_status_bar.dart';
+
+enum WarningSeverity { caution, danger }
+
+class TelemetryWarning {
+  final String title;
+  final String message;
+  final WarningSeverity severity;
+
+  const TelemetryWarning({
+    required this.title,
+    required this.message,
+    this.severity = WarningSeverity.danger,
+  });
+}
 
 class LiveTelemetryScreen extends StatefulWidget {
   final EnetHsfzProtocol? activeProtocol;
@@ -15,9 +30,9 @@ class LiveTelemetryScreen extends StatefulWidget {
 }
 
 class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
-  static const Color bgColor = Color(0xFF121212);
-  static const Color cardColor = Color(0xFF1E1E1E);
-  static const Color cardBorderColor = Color(0xFF2C2C2C);
+  static const Color bgColor = Color(0xFF000000); // OLED pitch black for cockpit HUD
+  static const Color cardColor = Color(0xFF101010);
+  static const Color cardBorderColor = Color(0xFF222222);
   static const Color neonGreen = Color(0xFF1DB954);
   static const Color accentBlue = Color(0xFF29B6F6);
   static const Color alertRed = Color(0xFFE53935);
@@ -28,10 +43,9 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
   late LiveTelemetryService _telemetryService;
   late BmwLiveActuator _actuator;
 
-  Map<String, double> _readings = {};
+  final ValueNotifier<TelemetryWarning?> _warningNotifier = ValueNotifier<TelemetryWarning?>(null);
   bool _isConnected = false;
   bool _isConnecting = false;
-  String? _connectionError;
   String _selectedCategory = 'All';
 
   @override
@@ -49,11 +63,10 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
     _telemetryService = LiveTelemetryService(protocol: _protocol);
     _actuator = BmwLiveActuator(protocol: _protocol);
 
+    // RepaintBoundary isolates individual gauges; stream only updates HUD warnings
     _telemetryService.readingsStream.listen((data) {
       if (mounted) {
-        setState(() {
-          _readings = data;
-        });
+        _checkWarningState();
       }
     });
 
@@ -66,12 +79,60 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
     });
   }
 
+  void _checkWarningState() {
+    final knock = _telemetryService.currentReadings['knock_detected'] ?? 0.0;
+    final boost = _telemetryService.currentReadings['manifold_boost_pressure'] ??
+        _telemetryService.currentReadings['boost_pressure'] ??
+        0.0;
+    final lambda = _telemetryService.currentReadings['wideband_lambda_bank1'] ?? 1.0;
+    final coolant = _telemetryService.currentReadings['engine_coolant_temperature'] ?? 0.0;
+    final oil = _telemetryService.currentReadings['engine_oil_temperature'] ?? 0.0;
+
+    TelemetryWarning? warning;
+    if (knock >= 0.5) {
+      warning = const TelemetryWarning(
+        title: 'KNOCK DETECTED',
+        message: 'DME Retarding Ignition Timing! Reduce throttle load.',
+        severity: WarningSeverity.danger,
+      );
+    } else if (boost > 24.0) {
+      warning = TelemetryWarning(
+        title: 'OVERBOOST WARNING',
+        message: 'Boost reached ${boost.toStringAsFixed(1)} PSI! Exceeds safe threshold.',
+        severity: WarningSeverity.danger,
+      );
+    } else if (boost > 5.0 && lambda > 0.88) {
+      warning = TelemetryWarning(
+        title: 'LEAN AIR/FUEL RATIO UNDER BOOST',
+        message: 'Lambda: ${lambda.toStringAsFixed(2)} at ${boost.toStringAsFixed(1)} PSI boost! Risk of detonation.',
+        severity: WarningSeverity.danger,
+      );
+    } else if (coolant > 110.0) {
+      warning = TelemetryWarning(
+        title: 'HIGH ENGINE COOLANT TEMP',
+        message: 'Coolant: ${coolant.toStringAsFixed(0)}°C! Check cooling system.',
+        severity: WarningSeverity.danger,
+      );
+    } else if (oil > 125.0) {
+      warning = TelemetryWarning(
+        title: 'HIGH ENGINE OIL TEMP',
+        message: 'Oil: ${oil.toStringAsFixed(0)}°C! Ease off load.',
+        severity: WarningSeverity.caution,
+      );
+    }
+
+    if (_warningNotifier.value?.title != warning?.title) {
+      _warningNotifier.value = warning;
+    }
+  }
+
   @override
   void dispose() {
     _telemetryService.stopPolling();
     if (_telemetryService.isLogging) {
       _telemetryService.stopLogging();
     }
+    _warningNotifier.dispose();
     // Safely return any active actuations back to DME control on exit
     _actuator.releaseAllActuations();
     if (_ownsProtocol) {
@@ -83,7 +144,6 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
   Future<void> _connectAndStart() async {
     setState(() {
       _isConnecting = true;
-      _connectionError = null;
     });
 
     try {
@@ -111,8 +171,13 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
         setState(() {
           _isConnected = false;
           _isConnecting = false;
-          _connectionError = e.toString().replaceAll('Exception: ', '');
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: alertRed,
+          ),
+        );
       }
     }
   }
@@ -153,8 +218,58 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
       builder: (ctx) => _ActuatorTestingModal(
         actuator: _actuator,
         isConnected: _isConnected,
-        readings: _readings,
+        readings: _telemetryService.currentReadings,
       ),
+    );
+  }
+
+  Widget _buildWarningBanner() {
+    return ValueListenableBuilder<TelemetryWarning?>(
+      valueListenable: _warningNotifier,
+      builder: (context, warning, _) {
+        if (warning == null) return const SizedBox.shrink();
+
+        final color = warning.severity == WarningSeverity.danger
+            ? const Color(0xFFFF0033) // Flashing Knock / Danger Alert
+            : const Color(0xFFFFA000);
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: color, width: 1.5),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: color, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      warning.title,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      warning.message,
+                      style: const TextStyle(color: Colors.white, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -181,7 +296,7 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
               style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
             ),
             Text(
-              '${allSensors.length} Channels • Zero Simulation',
+              '${allSensors.length} Channels • Zero Simulation • OLED HUD',
               style: const TextStyle(color: Colors.white38, fontSize: 11),
             ),
           ],
@@ -225,44 +340,15 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Status bar
-            if (!_isConnected || _isConnecting || _connectionError != null)
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _isConnected ? neonGreen.withValues(alpha: 0.1) : alertRed.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: _isConnected ? neonGreen.withValues(alpha: 0.3) : alertRed.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    if (_isConnecting)
-                      const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: neonGreen))
-                    else
-                      Icon(_isConnected ? Icons.check_circle : Icons.warning_amber_rounded,
-                          color: _isConnected ? neonGreen : alertRed, size: 18),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _isConnecting
-                            ? 'Connecting to BMW Gateway...'
-                            : (_connectionError ?? 'Connected to vehicle (Polling active)'),
-                        style: TextStyle(color: _isConnected ? neonGreen : alertRed, fontSize: 12),
-                      ),
-                    ),
-                    if (!_isConnected && !_isConnecting)
-                      TextButton(
-                        onPressed: _connectAndStart,
-                        child: const Text('RETRY', style: TextStyle(color: neonGreen, fontWeight: FontWeight.bold)),
-                      ),
-                  ],
-                ),
-              ),
+            // Standardized 3-state Link Status Bar (P3.6)
+            LinkStatusBar(
+              onConnectPressed: _isConnecting ? null : _connectAndStart,
+            ),
 
-            // Primary Hero Gauges: RPM & Boost
+            // Automotive Warning HUD Banner (P3.5)
+            _buildWarningBanner(),
+
+            // Primary Hero Gauges: RPM & Boost (P3.2 - RepaintBoundary + ValueNotifier)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: Row(
@@ -270,7 +356,7 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
                   Expanded(
                     child: _buildHeroGauge(
                       title: 'ENGINE RPM',
-                      value: _readings['engine_rpm'] ?? 0.0,
+                      notifier: _telemetryService.getSensorNotifier('engine_rpm'),
                       max: 7000,
                       unit: 'RPM',
                       accentColor: neonGreen,
@@ -280,7 +366,7 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
                   Expanded(
                     child: _buildHeroGauge(
                       title: 'BOOST PRESSURE',
-                      value: _readings['boost_pressure'] ?? 0.0,
+                      notifier: _telemetryService.getSensorNotifier('boost_pressure'),
                       max: 28.0,
                       unit: 'PSI',
                       accentColor: accentBlue,
@@ -332,7 +418,7 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
               ),
             ),
 
-            // Secondary Sensors Grid
+            // Secondary Sensors Grid (P3.2: 60/120 FPS Granular RepaintBoundaries)
             Expanded(
               child: gridSensors.isEmpty
                   ? Center(
@@ -352,78 +438,83 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
                       itemCount: gridSensors.length,
                       itemBuilder: (context, index) {
                         final sensor = gridSensors[index];
-                        final val = _readings[sensor.id] ?? 0.0;
-                        final isWarning = sensor.isWarning(val);
-                        final hasReading = _readings.containsKey(sensor.id);
+                        return RepaintBoundary(
+                          child: ValueListenableBuilder<double>(
+                            valueListenable: _telemetryService.getSensorNotifier(sensor.id),
+                            builder: (context, val, _) {
+                              final isWarning = sensor.isWarning(val);
+                              final hasReading = val > 0 || _telemetryService.currentReadings.containsKey(sensor.id);
 
-                        return Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: isWarning
-                                  ? alertRed
-                                  : (hasReading ? neonGreen.withValues(alpha: 0.2) : cardBorderColor),
-                              width: isWarning ? 1.5 : 1.0,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      sensor.label,
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                              return Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: cardColor,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isWarning
+                                        ? alertRed
+                                        : (hasReading ? neonGreen.withValues(alpha: 0.2) : cardBorderColor),
+                                    width: isWarning ? 1.5 : 1.0,
                                   ),
-                                  if (isWarning)
-                                    const Icon(Icons.warning_amber_rounded, color: alertRed, size: 14),
-                                ],
-                              ),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.baseline,
-                                textBaseline: TextBaseline.alphabetic,
-                                children: [
-                                  Text(
-                                    sensor.formatValue(val),
-                                    style: TextStyle(
-                                      color: isWarning ? alertRed : Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      fontFamily: 'monospace',
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    sensor.unit,
-                                    style: const TextStyle(color: Colors.white38, fontSize: 10),
-                                  ),
-                                ],
-                              ),
-                              // Mini Linear Progress
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(2),
-                                child: LinearProgressIndicator(
-                                  value: ((val - sensor.min) / (sensor.max - sensor.min)).clamp(0.0, 1.0),
-                                  backgroundColor: Colors.white12,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    isWarning ? alertRed : (hasReading ? neonGreen : Colors.white24),
-                                  ),
-                                  minHeight: 3,
                                 ),
-                              ),
-                            ],
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            sensor.label,
+                                            style: const TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (isWarning)
+                                          const Icon(Icons.warning_amber_rounded, color: alertRed, size: 14),
+                                      ],
+                                    ),
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                                      textBaseline: TextBaseline.alphabetic,
+                                      children: [
+                                        Text(
+                                          sensor.formatValue(val),
+                                          style: TextStyle(
+                                            color: isWarning ? alertRed : Colors.white,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                            fontFamily: 'monospace',
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          sensor.unit,
+                                          style: const TextStyle(color: Colors.white38, fontSize: 10),
+                                        ),
+                                      ],
+                                    ),
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(2),
+                                      child: LinearProgressIndicator(
+                                        value: ((val - sensor.min) / (sensor.max - sensor.min)).clamp(0.0, 1.0),
+                                        backgroundColor: Colors.white12,
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                          isWarning ? alertRed : (hasReading ? neonGreen : Colors.white24),
+                                        ),
+                                        minHeight: 3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                           ),
                         );
                       },
@@ -437,64 +528,71 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
 
   Widget _buildHeroGauge({
     required String title,
-    required double value,
+    required ValueNotifier<double> notifier,
     required double max,
     required String unit,
     required Color accentColor,
   }) {
-    final ratio = (value / max).clamp(0.0, 1.0);
+    return RepaintBoundary(
+      child: ValueListenableBuilder<double>(
+        valueListenable: notifier,
+        builder: (context, value, _) {
+          final ratio = (value / max).clamp(0.0, 1.0);
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accentColor.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              color: accentColor,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.8,
+          return Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: accentColor.withValues(alpha: 0.3)),
             ),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                value.toStringAsFixed(unit == 'PSI' ? 1 : 0),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'monospace',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: accentColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.8,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                unit,
-                style: const TextStyle(color: Colors.white38, fontSize: 12),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: ratio,
-              backgroundColor: Colors.white12,
-              valueColor: AlwaysStoppedAnimation<Color>(accentColor),
-              minHeight: 5,
+                const SizedBox(height: 6),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      value.toStringAsFixed(unit == 'PSI' ? 1 : 0),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      unit,
+                      style: const TextStyle(color: Colors.white38, fontSize: 12),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: LinearProgressIndicator(
+                    value: ratio,
+                    backgroundColor: Colors.white12,
+                    valueColor: AlwaysStoppedAnimation<Color>(accentColor),
+                    minHeight: 5,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

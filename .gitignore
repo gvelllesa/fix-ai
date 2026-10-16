@@ -62,3 +62,7 @@ backend/.env
 
 # Scratch files
 scratch/
+tools/
+ios/Flutter/
+ios/Runner/GeneratedPluginRegistrant.*
+build_and_upload.ps1

@@ -88,6 +88,7 @@ class ConnectionManager {
   ConnectionSnapshot get snapshot => snapshotNotifier.value;
 
   final ValueNotifier<bool> isExclusiveLocked = ValueNotifier<bool>(false);
+  bool get isExclusiveActive => isExclusiveLocked.value;
 
   Timer? _heartbeatTimer;
   bool _isConnecting = false;
