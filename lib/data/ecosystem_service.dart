@@ -59,8 +59,17 @@ class EcosystemService {
   /// evaluated against the vehicle's current real-world mileage.
   Future<String?> checkPredictiveMaintenance(String carProfileId, int currentMileage) async {
     try {
-      // 1. Resolve vehicle characteristics
-      final carData = await _supabaseClient
+      // 1. Resolve vehicle characteristics from garage (or fallback car_profiles)
+      Map<String, dynamic>? carData;
+      try {
+        carData = await _supabaseClient
+            .from('garage')
+            .select('make, model, year')
+            .eq('id', carProfileId)
+            .maybeSingle();
+      } catch (_) {}
+
+      carData ??= await _supabaseClient
           .from('car_profiles')
           .select('brand, model, year')
           .eq('id', carProfileId)
@@ -68,7 +77,7 @@ class EcosystemService {
 
       if (carData == null) return null;
 
-      final brand = carData['brand'];
+      final brand = carData['make'] ?? carData['brand'];
       final model = carData['model'];
 
       // 2. Fetch global crowd-sourced insights specific to this chassis

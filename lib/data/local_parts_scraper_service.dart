@@ -1,6 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 
 /// Service to scrape/fetch local Georgian auto parts prices.
 class LocalPartsScraperService {

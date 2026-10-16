@@ -1,43 +1,23 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+/// Compile-time public configuration injected via `--dart-define`.
+///
+/// Private API keys (Gemini, Telegram Bot, EU VIN Decoder) are strictly
+/// prohibited in the client binary and reside only in Supabase Edge Function
+/// secrets.
 class EnvConfig {
-  static Future<void> load() async {
-    await dotenv.load(fileName: ".env");
-  }
+  const EnvConfig._();
 
-  static String get supabaseUrl {
-    final url = dotenv.env['SUPABASE_URL'];
-    if (url == null || url.isEmpty) {
-      throw Exception('SUPABASE_URL is missing in .env');
+  static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  static const String supabaseAnonKey =
+      String.fromEnvironment('SUPABASE_ANON_KEY');
+
+  static bool get isConfigured =>
+      supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
+
+  static void assertConfigured() {
+    if (!isConfigured) {
+      throw StateError(
+        'Missing --dart-define=SUPABASE_URL / --dart-define=SUPABASE_ANON_KEY',
+      );
     }
-    return url;
-  }
-
-  static String get supabaseAnonKey {
-    final key = dotenv.env['SUPABASE_ANON_KEY'];
-    if (key == null || key.isEmpty) {
-      throw Exception('SUPABASE_ANON_KEY is missing in .env');
-    }
-    return key;
-  }
-
-  static String get geminiApiKey {
-    final key = dotenv.env['GEMINI_API_KEY'];
-    if (key == null || key.isEmpty) {
-      throw Exception('GEMINI_API_KEY is missing in .env');
-    }
-    return key;
-  }
-
-  static String get telegramBotToken {
-    return dotenv.env['TELEGRAM_BOT_TOKEN'] ?? '';
-  }
-
-  static String get telegramChatId {
-    return dotenv.env['TELEGRAM_CHAT_ID'] ?? '';
-  }
-
-  static String get euVinApiKey {
-    return dotenv.env['EU_VIN_API_KEY'] ?? '';
   }
 }

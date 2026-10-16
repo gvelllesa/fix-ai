@@ -1,5 +1,8 @@
 # Secrets
 .env
+*pas*.txt
+*.secret
+
 
 # Miscellaneous
 *.class

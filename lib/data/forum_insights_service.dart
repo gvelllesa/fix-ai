@@ -107,6 +107,7 @@ class ForumInsightsService {
       ''';
 
       // Simulation of Gemini 3.1 Pro's intelligent processing and JSON generation.
+      debugPrint('Targeting ${endpointMatrix.length} platform categories with prompt (${geminiInstruction.length} chars)');
       // Replace this block with actual `google_generative_ai` package call in production.
       final String aiJsonResponse = '''
       [

@@ -1,102 +1,135 @@
 import 'package:flutter/foundation.dart';
 import 'dart:async';
-import '../modules/obd/services/protocols/obd_decoder.dart';
+import '../modules/obd/services/protocols/enet_hsfz_protocol.dart';
+import '../modules/obd/services/bmw_ecu_scanner.dart';
 import '../modules/obd/services/protocols/bluetooth_strategy.dart';
 import '../modules/obd/services/protocols/wifi_strategy.dart';
 
-/// Architectural bridge for ELM327 Bluetooth/Wi-Fi and ENET Hardware.
 class ObdDataProcessor {
-  final ObdDecoder _decoder = ObdDecoder();
-  
-  // Strategies
+  // Traditional ELM327 strategies for fallback
   final BluetoothStrategy _bluetoothStrategy = BluetoothStrategy();
   final WifiStrategy _wifiStrategy = WifiStrategy();
 
-  /// Initiates hardware scan using the specified interface
-  Future<List<String>> scanAndExtractFaultCodes(String carModel, String interfaceType) async {
-    debugPrint('OBD-II: Initiating hardware scan via $interfaceType...');
+  // Real BMW ENET / DoIP protocol engine
+  EnetHsfzProtocol? _enetProtocol;
+  BmwEcuScanner? _ecuScanner;
+
+  EnetHsfzProtocol get enetProtocol {
+    _enetProtocol ??= EnetHsfzProtocol();
+    return _enetProtocol!;
+  }
+
+  BmwEcuScanner get ecuScanner {
+    _ecuScanner ??= BmwEcuScanner(protocol: enetProtocol);
+    return _ecuScanner!;
+  }
+
+  /// Initiates genuine hardware scan using the specified interface.
+  /// Probes real adapter ports [35000, 6801, 13400, 50160] with zero mock fallback.
+  Future<List<String>> scanAndExtractFaultCodes(
+    String carModel, 
+    String interfaceType, {
+    String? preferredHost,
+    int? preferredPort,
+    void Function(String status, double progress)? onProgress,
+  }) async {
+    debugPrint('[ObdDataProcessor] Initiating genuine hardware scan via $interfaceType...');
+    onProgress?.call('Probing hardware adapter...', 0.05);
+
+    final protocol = enetProtocol;
     
+    // Attempt real connection
     bool isConnected = false;
-
     try {
-      if (interfaceType == 'Wi-Fi') {
-        isConnected = await _wifiStrategy.connect(); // Uses default 192.168.0.10:35000
-      } else if (interfaceType == 'Bluetooth') {
-        // Since we don't have a device picker UI yet, this will gracefully fail 
-        // and fallback to simulation. In production, pass the BluetoothDevice here.
-        debugPrint('OBD-II: Bluetooth connection requested but no device provided. Falling back.');
-        isConnected = false; 
-      } else if (interfaceType == 'ENET') {
-        debugPrint('OBD-II: ENET DoIP requested. Simulating TCP 6801 connection.');
-        isConnected = false; // Mocking failure to trigger simulation
-      } else {
-        debugPrint('OBD-II: USB or Unsupported interface requested.');
-      }
-
-      if (isConnected) {
-        debugPrint('OBD-II: Physical hardware connected! Requesting DTCs (Mode 03)...');
-        
-        // Request Stored Diagnostic Trouble Codes (Mode 03)
-        if (interfaceType == 'Wi-Fi') {
-          await _wifiStrategy.send('03');
+      if (interfaceType == 'ENET' || interfaceType == 'Wi-Fi' || interfaceType == 'Auto') {
+        if (preferredHost != null && preferredPort != null) {
+          isConnected = await protocol.connect(
+            host: preferredHost, 
+            port: preferredPort,
+            useDoip: preferredPort == 13400,
+          );
         } else {
-          await _bluetoothStrategy.send('03');
+          // Automatic multi-port detection: fast path 192.168.16.101, fallback 192.168.0.10, 169.254.1.1
+          final target = await protocol.detectAdapter();
+          if (target != null) {
+            isConnected = await protocol.connect(
+              host: target.host, 
+              port: target.port,
+              useDoip: target.isDoip,
+            );
+          }
         }
-
-        // Wait for buffer to fill (simulated stream listening delay)
-        await Future.delayed(const Duration(seconds: 2));
-
-        // In a real scenario, we'd listen to the Stream, but for this bridge:
-        // Assume failure to read real stream for now and fallback.
-        debugPrint('OBD-II: No real vehicle response received over stream.');
+      } else if (interfaceType == 'Bluetooth') {
+        debugPrint('[ObdDataProcessor] Bluetooth interface requires paired BLE OBD adapter.');
         isConnected = false;
       }
     } catch (e) {
-      debugPrint('OBD-II Hardware Error: $e');
+      debugPrint('[ObdDataProcessor] Connection error: $e');
       isConnected = false;
-    } finally {
-      // Cleanup
-      if (interfaceType == 'Wi-Fi') await _wifiStrategy.disconnect();
-      if (interfaceType == 'Bluetooth') await _bluetoothStrategy.disconnect();
     }
 
     if (!isConnected) {
-      debugPrint('OBD-II: Physical connection failed or unavailable. Falling back to Simulation Module.');
-      await Future.delayed(const Duration(seconds: 2)); // Simulate processing delay
-      return _generateMockObdData(carModel);
+      debugPrint('[ObdDataProcessor] Physical vehicle connection failed. No simulation fallback.');
+      onProgress?.call('Connection failed: Vehicle/adapter not detected', 1.0);
+      return [];
     }
 
-    return [];
+    try {
+      onProgress?.call('Vehicle connected! Starting ECU topology scan...', 0.2);
+      final scanner = BmwEcuScanner(protocol: protocol);
+      final scanResult = await scanner.performFullDiagnosticScan(
+        onProgress: (stage, prog) => onProgress?.call(stage, prog),
+      );
+
+      final codes = scanResult.getAllFaultCodes();
+      debugPrint('[ObdDataProcessor] Scan completed. Found ${codes.length} real DTCs across topology.');
+      return codes;
+    } catch (e) {
+      debugPrint('[ObdDataProcessor] Error during diagnostic scan: $e');
+      return [];
+    } finally {
+      // Disconnect cleanly to release sockets
+      await protocol.disconnect();
+    }
   }
 
-  /// Simulation Module: Generates highly specific hardware codes based on the vehicle chassis.
-  List<String> _generateMockObdData(String carModel) {
-    final modelLower = carModel.toLowerCase();
+  /// Clears DTCs across all responding ECUs (UDS 0x14 0xFF 0xFF 0xFF)
+  Future<int> clearAllFaultCodes({String? host, int? port}) async {
+    final protocol = enetProtocol;
+    final isConnected = await protocol.connect(
+      host: host ?? '192.168.16.101',
+      port: port ?? 35000,
+    );
+    if (!isConnected) return 0;
 
-    // European / German
-    if (modelLower.contains('bmw') || modelLower.contains('x4') || modelLower.contains('m3') || modelLower.contains('f26')) {
-      return ['P0301', 'P052E']; // Cylinder 1 Misfire, PCV Valve Performance
+    try {
+      final scanner = BmwEcuScanner(protocol: protocol);
+      final topology = BmwEcuScanner.getDefaultFSeriesTopology();
+      return await scanner.clearAllFaultCodes(topology);
+    } finally {
+      await protocol.disconnect();
     }
-    if (modelLower.contains('mercedes') || modelLower.contains('amg')) {
-      return ['P0171', 'P2187']; // System Too Lean Bank 1, System Too Lean at Idle
-    }
-
-    // Japanese / Hybrid Focus
-    if (modelLower.contains('toyota') || modelLower.contains('prius')) {
-      return ['P0A80', 'P3000']; // Replace Hybrid Battery Pack, HV Battery Malfunction
-    }
-    
-    // Chinese EV / Global
-    if (modelLower.contains('byd') || modelLower.contains('zeekr') || modelLower.contains('geely')) {
-      return ['U0100', 'U0110']; // Lost Communication with ECM/PCM, Lost Comms with Drive Motor Module
-    }
-
-    // Default Generic Codes
-    return ['P0420', 'P0455']; // Catalyst System Efficiency Below Threshold, Evap Emission System Leak (Large)
   }
 
-  /// Disposes all internal strategy resources to prevent memory leaks.
+  /// Reads true vehicle VIN from DME / ZGW (UDS 0x22 0xF1 0x90)
+  Future<String?> readVehicleVin({String? host, int? port}) async {
+    final protocol = enetProtocol;
+    final isConnected = await protocol.connect(
+      host: host ?? '192.168.16.101',
+      port: port ?? 35000,
+    );
+    if (!isConnected) return null;
+
+    try {
+      return await protocol.readVin(0x12) ?? await protocol.readVin(0x10);
+    } finally {
+      await protocol.disconnect();
+    }
+  }
+
+  /// Disposes all internal resources
   void dispose() {
+    _enetProtocol?.disconnect();
     _bluetoothStrategy.dispose();
     _wifiStrategy.dispose();
   }
