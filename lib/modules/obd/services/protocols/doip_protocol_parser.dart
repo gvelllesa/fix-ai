@@ -5,6 +5,7 @@
 /// 
 /// It is designed to mimic standard BMW deep diagnostic capabilities (e.g., Ediabas / DeepOBD logic)
 /// allowing direct module querying rather than generic ELM327 OBD-II polling.
+library;
 
 class DoipProtocolParser {
   

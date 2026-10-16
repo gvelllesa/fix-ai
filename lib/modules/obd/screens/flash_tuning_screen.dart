@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/config/feature_flags.dart';
 import '../services/actuation_guard.dart';
+import '../services/flash_os_guard.dart';
 import '../services/bmw_flash_options.dart';
 import '../services/bmw_live_actuator.dart';
 import '../services/bmw_flash_manager.dart';
@@ -71,6 +72,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
   @override
   void dispose() {
     _flashSubscription?.cancel();
+    FlashOsGuard.instance.release();
     _tabController.dispose();
     super.dispose();
   }
@@ -773,9 +775,10 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
                             flex: 2,
                             child: ElevatedButton.icon(
                               onPressed: (FeatureFlags.kFlashEnabled && preFlight.passed)
-                                  ? () {
+                                  ? () async {
                                       setModalState(() => _isFlashing = true);
                                       setState(() => _isFlashing = true);
+                                      await FlashOsGuard.instance.acquire();
                                       _flashSubscription?.cancel();
                                       _flashSubscription = _flashManager.executeFlash(options: _options).listen(
                                         (event) {
@@ -792,11 +795,13 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
                                           });
 
                                           if (event['step'] == 'COMPLETE' || event['step'] == 'FAILED' || event['step'] == 'SAFETY_LOCK') {
+                                            FlashOsGuard.instance.release();
                                             setModalState(() => _isFlashing = false);
                                             setState(() => _isFlashing = false);
                                           }
                                         },
                                         onError: (err) {
+                                          FlashOsGuard.instance.release();
                                           if (!mounted) return;
                                           setModalState(() {
                                             _isFlashing = false;
@@ -806,6 +811,9 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
                                             _isFlashing = false;
                                             _flashStatus = 'შეცდომა: $err';
                                           });
+                                        },
+                                        onDone: () {
+                                          FlashOsGuard.instance.release();
                                         },
                                       );
                                     }

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -286,12 +285,20 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
         currentCarId: widget.carProfile['id'],
         onObdConnected: (payload) {
           Navigator.pop(context); // Close the drawer
-          final code = payload['code'];
-          final desc = payload['description'];
-          _controller.sendMessage(
-            "I scanned the car and found OBD-II Code: $code (*$desc*). What should I check, and what parts might need replacing?", 
-            widget.carProfile
-          );
+          final faults = payload['faults'] as List<String>?;
+          if (faults != null && faults.isNotEmpty) {
+            final prompt = "I performed a full ECU topology scan and found the following vehicle fault codes:\n" +
+                faults.map((f) => "- $f").join("\n") +
+                "\n\nPlease provide an ISTA-level root-cause diagnosis, sensor plausibility check, and recommended repair procedure.";
+            _controller.sendMessage(prompt, widget.carProfile);
+          } else {
+            final code = payload['code'];
+            final desc = payload['description'];
+            _controller.sendMessage(
+              "I scanned the car and found OBD-II Code: $code (*$desc*). What should I check, and what parts might need replacing?", 
+              widget.carProfile
+            );
+          }
         },
         onVehicleSelected: (car) {
           final carMap = {
@@ -576,22 +583,6 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
         );
       }
     });
-  }
-
-  void _showLocalPrices(String partName) {
-    final brand = widget.carProfile['brand']?.toString() ?? 'Unknown';
-    final model = widget.carProfile['model']?.toString() ?? 'Model';
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => LocalPriceBottomSheet(
-        englishPartName: partName,
-        vehicleBrand: brand,
-        vehicleModel: model,
-      ),
-    );
   }
 }
 

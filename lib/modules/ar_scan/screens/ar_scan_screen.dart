@@ -98,8 +98,9 @@ class _ArScanScreenState extends State<ArScanScreen> with SingleTickerProviderSt
   Future<void> onPlaneOrPointTapped(List<ARHitTestResult> hitTestResults) async {
     if (targetNode != null) return; // already placed
     
-    final singleHitTestResult = hitTestResults.firstWhere((hitTestResult) => hitTestResult.type == ARHitTestResultType.plane);
-    if (singleHitTestResult != null) {
+    final planeHits = hitTestResults.where((hitTestResult) => hitTestResult.type == ARHitTestResultType.plane);
+    if (planeHits.isNotEmpty) {
+      final singleHitTestResult = planeHits.first;
       setState(() {
         debugStatus = "Engine Anchor Set at Plane!";
         statusMessage = "Highlighting 3D Part...";

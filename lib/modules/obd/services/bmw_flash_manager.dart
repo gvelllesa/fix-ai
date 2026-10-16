@@ -4,6 +4,63 @@ import '../../../core/config/feature_flags.dart';
 import 'protocols/enet_hsfz_protocol.dart';
 import 'bmw_flash_options.dart';
 
+/// Complete ECU identification snapshot extracted via UDS DIDs
+class EcuIdentity {
+  final String vin;
+  final String? dmeType;
+  final String? btld;
+  final String? swfl;
+  final String? engineCode;
+  final int? activeDiagnosticSession;
+
+  const EcuIdentity({
+    required this.vin,
+    this.dmeType,
+    this.btld,
+    this.swfl,
+    this.engineCode,
+    this.activeDiagnosticSession,
+  });
+
+  /// Parse SVK table from DID 0xF101 response and VIN
+  /// // TODO(verify-on-ecu): verify BMW SVK format and table structure on MEVD17 / MG1
+  static EcuIdentity parseFromUds({
+    required String vin,
+    Uint8List? svkPayload,
+    int? activeSession,
+  }) {
+    String? dme;
+    String? btld;
+    String? swfl;
+    String? engine;
+
+    if (svkPayload != null && svkPayload.length >= 8) {
+      // TODO(verify-on-ecu): extract SGBM IDs for BTLD and SWFL from raw SVK block
+      dme = 'BMW-DME';
+    }
+
+    if (vin.length >= 7) {
+      final code = vin.substring(3, 7).toUpperCase();
+      if (code.contains('3A5') || code.contains('1B5') || code.contains('3B5')) {
+        engine = 'N55B30M0';
+        dme = 'MEVD172G';
+      } else if (code.contains('8B1') || code.contains('5R1') || code.contains('5U7')) {
+        engine = 'B58B30O1';
+        dme = 'MG1CS003';
+      }
+    }
+
+    return EcuIdentity(
+      vin: vin,
+      dmeType: dme,
+      btld: btld,
+      swfl: swfl,
+      engineCode: engine,
+      activeDiagnosticSession: activeSession,
+    );
+  }
+}
+
 /// Pre-flight safety check result. Strict Fail-Closed implementation.
 class PreFlightCheckResult {
   final bool passed;
@@ -12,6 +69,7 @@ class PreFlightCheckResult {
   final bool isDmeUnlocked;
   final bool isCustomRomBootloader;
   final String? vin;
+  final EcuIdentity? ecuIdentity;
   final List<String> errorMessages;
   final List<String> warningMessages;
 
@@ -22,6 +80,7 @@ class PreFlightCheckResult {
     required this.isDmeUnlocked,
     this.isCustomRomBootloader = false,
     this.vin,
+    this.ecuIdentity,
     required this.errorMessages,
     this.warningMessages = const [],
   });
@@ -108,6 +167,7 @@ class BmwFlashManager {
     double? engineRpm;
     double? vehicleSpeed;
     String? readVinStr;
+    EcuIdentity? ecuIdentity;
     bool customRom = false;
 
     EnetHsfzProtocol proto;
@@ -176,9 +236,12 @@ class BmwFlashManager {
       final speedResp = await proto.sendUdsRequest(dmeAddress, const [0x22, 0x58, 0x0D], timeout: const Duration(seconds: 2));
       if (speedResp.length >= 4 && speedResp[0] == 0x62) {
         vehicleSpeed = speedResp[3] * 1.25;
-        if (vehicleSpeed > 0.0) {
-          errors.add('საფრთხე: ავტომობილი მოძრაობს (${vehicleSpeed.toStringAsFixed(1)} კმ/სთ). ავტომობილი აუცილებლად უნდა იდგეს!');
-        }
+      }
+
+      if (vehicleSpeed == null) {
+        errors.add('ავტომობილის სიჩქარის (Speed) დადასტურება ვერ მოხერხდა. ავტომობილი აუცილებლად უნდა იდგეს.');
+      } else if (vehicleSpeed > 0.0) {
+        errors.add('საფრთხე: ავტომობილი მოძრაობს (${vehicleSpeed.toStringAsFixed(1)} კმ/სთ). ავტომობილი აუცილებლად უნდა იდგეს!');
       }
 
       // 4. Read Vehicle VIN via DID 0xF190
@@ -189,7 +252,20 @@ class BmwFlashManager {
         errors.add('DME-ს VIN კოდი ($readVinStr) არ ემთხვევა მოთხოვნილ ლიცენზირებულ VIN-ს ($requiredVin).');
       }
 
-      // 5. Check Custom ROM status
+      // 5. Read SVK (0x22 0xF1 0x01) and Active Diagnostic Session (0x22 0xF1 0x86)
+      final svkResp = await proto.sendUdsRequest(dmeAddress, const [0x22, 0xF1, 0x01], timeout: const Duration(seconds: 2));
+      final sessResp = await proto.sendUdsRequest(dmeAddress, const [0x22, 0xF1, 0x86], timeout: const Duration(seconds: 2));
+      final activeSession = (sessResp.length >= 4 && sessResp[0] == 0x62) ? sessResp[3] : null;
+
+      if (readVinStr != null && readVinStr.length >= 17) {
+        ecuIdentity = EcuIdentity.parseFromUds(
+          vin: readVinStr,
+          svkPayload: svkResp.isNotEmpty ? svkResp : null,
+          activeSession: activeSession,
+        );
+      }
+
+      // 6. Check Custom ROM status
       customRom = await checkCustomRomInstalled();
 
     } catch (e) {
@@ -206,6 +282,7 @@ class BmwFlashManager {
       isDmeUnlocked: customRom,
       isCustomRomBootloader: customRom,
       vin: readVinStr,
+      ecuIdentity: ecuIdentity,
       errorMessages: errors,
       warningMessages: warnings,
     );

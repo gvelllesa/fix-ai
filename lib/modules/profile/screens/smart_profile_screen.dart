@@ -339,7 +339,7 @@ class _SmartProfileScreenState extends State<SmartProfileScreen> with SingleTick
                   ),
                 ),
               );
-            }).toList(),
+            }),
           ],
         );
       },

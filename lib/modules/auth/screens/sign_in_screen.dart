@@ -158,6 +158,34 @@ class _SignInScreenState extends State<SignInScreen> {
                               : const Text('Sign In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 48),
+                        child: OutlinedButton.icon(
+                          onPressed: _authController.isLoading
+                              ? null
+                              : () {
+                                  _emailController.text = 'test@fixai.com';
+                                  _passwordController.text = 'test123456';
+                                  _signIn();
+                                },
+                          icon: const Icon(Icons.flash_on, color: Colors.amberAccent),
+                          label: const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'დროებითი ტესტ-შესვლა (1-Click Demo)',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.amberAccent),
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.amberAccent, width: 1.5),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 24),
                       TextButton(
                         onPressed: () {

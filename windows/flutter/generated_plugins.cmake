@@ -8,6 +8,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   file_selector_windows
   firebase_core
   flutter_blue_plus_winrt
+  flutter_secure_storage_windows
   geolocator_windows
   permission_handler_windows
   record_windows

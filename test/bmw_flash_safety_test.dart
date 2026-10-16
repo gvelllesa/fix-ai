@@ -91,6 +91,29 @@ void main() {
       expect(result.errorMessages.any((e) => e.contains('ძრავი ამჟამად მუშაობს')), isTrue);
     });
 
+    test('3b. Pre-flight check FAILS-CLOSED when vehicle speed cannot be confirmed (null)', () async {
+      mockProto.setResponse(0x12, [0x22, 0x58, 0x15], [0x62, 0x58, 0x15, 0x35, 0xE8]);
+      mockProto.setResponse(0x12, [0x22, 0x20, 0x00], [0x62, 0x20, 0x00, 0x00, 0x00]);
+      // No speed response configured
+      mockProto.setResponse(0x12, [0x22, 0xF1, 0x90], [0x62, 0xF1, 0x90, ...'WBA3A5C50DF123456'.codeUnits]);
+
+      final result = await flashManager.runPreFlightChecks();
+      expect(result.passed, isFalse);
+      expect(result.errorMessages.any((e) => e.contains('სიჩქარის (Speed) დადასტურება ვერ მოხერხდა')), isTrue);
+    });
+
+    test('3c. Pre-flight check FAILS-CLOSED when vehicle is moving (Speed > 0)', () async {
+      mockProto.setResponse(0x12, [0x22, 0x58, 0x15], [0x62, 0x58, 0x15, 0x35, 0xE8]);
+      mockProto.setResponse(0x12, [0x22, 0x20, 0x00], [0x62, 0x20, 0x00, 0x00, 0x00]);
+      // Speed = 20 * 1.25 = 25 km/h -> byte = 20 = 0x14
+      mockProto.setResponse(0x12, [0x22, 0x58, 0x0D], [0x62, 0x58, 0x0D, 0x14]);
+      mockProto.setResponse(0x12, [0x22, 0xF1, 0x90], [0x62, 0xF1, 0x90, ...'WBA3A5C50DF123456'.codeUnits]);
+
+      final result = await flashManager.runPreFlightChecks();
+      expect(result.passed, isFalse);
+      expect(result.errorMessages.any((e) => e.contains('ავტომობილი მოძრაობს')), isTrue);
+    });
+
     test('4. Pre-flight check passes only when all safety interlocks are 100% verified', () async {
       // 13.80V -> 13800 mV = 0x35E8
       mockProto.setResponse(0x12, [0x22, 0x58, 0x15], [0x62, 0x58, 0x15, 0x35, 0xE8]);

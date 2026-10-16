@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/config/env_config.dart';
 import 'data/supabase_client.dart';
@@ -49,9 +52,26 @@ void main() async {
     debugPrint('[main] Supabase init warning: $e');
   }
 
-  // 3. Initialize Local Cache safely
+  // 3. Initialize Local Cache safely with encrypted storage
   try {
-    await LocalCacheService().init();
+    List<int>? encryptionKey;
+    try {
+      const secureStorage = FlutterSecureStorage();
+      var keyBase64 = await secureStorage.read(key: 'hive_encryption_key');
+      if (keyBase64 == null) {
+        final newKey = Hive.generateSecureKey();
+        await secureStorage.write(
+          key: 'hive_encryption_key',
+          value: base64UrlEncode(newKey),
+        );
+        encryptionKey = newKey;
+      } else {
+        encryptionKey = base64Url.decode(keyBase64);
+      }
+    } catch (e) {
+      debugPrint('[main] FlutterSecureStorage key retrieval notice: $e');
+    }
+    await LocalCacheService().init(encryptionKey: encryptionKey);
   } catch (e) {
     debugPrint('[main] LocalCache init warning: $e');
   }

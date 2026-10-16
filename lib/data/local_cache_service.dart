@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 /// Offline Local Cache Engine
@@ -15,23 +16,41 @@ class LocalCacheService {
   static const String _historyBoxName = 'cached_history';
   static const String _insightsBoxName = 'cached_insights';
 
-  /// Initializes the Hive database and opens required boxes.
+  /// Initializes the Hive database and opens required boxes with AES encryption.
   /// Should be called inside `main.dart` before `runApp()`.
   Future<void> init({List<int>? encryptionKey}) async {
     await Hive.initFlutter();
-    
-    // Future-proofing for encryption: If an encryption key is provided, use HiveAesCipher.
-    // Note: Generating and storing the key securely requires flutter_secure_storage.
+
     HiveCipher? cipher;
     if (encryptionKey != null && encryptionKey.length == 32) {
       cipher = HiveAesCipher(encryptionKey);
+    } else {
+      try {
+        const secureStorage = FlutterSecureStorage();
+        var keyBase64 = await secureStorage.read(key: 'hive_encryption_key');
+        if (keyBase64 == null) {
+          final newKey = Hive.generateSecureKey();
+          await secureStorage.write(
+            key: 'hive_encryption_key',
+            value: base64UrlEncode(newKey),
+          );
+          cipher = HiveAesCipher(newKey);
+        } else {
+          final decodedKey = base64Url.decode(keyBase64);
+          if (decodedKey.length == 32) {
+            cipher = HiveAesCipher(decodedKey);
+          }
+        }
+      } catch (e) {
+        debugPrint('[LocalCacheService] Secure storage unavailable for encryption key: $e');
+      }
     }
 
     await Hive.openBox(_profileBoxName, encryptionCipher: cipher);
     await Hive.openBox(_historyBoxName, encryptionCipher: cipher);
     await Hive.openBox(_insightsBoxName, encryptionCipher: cipher);
-    
-    debugPrint('LocalCacheService initialized successfully.');
+
+    debugPrint('LocalCacheService initialized successfully (encrypted: ${cipher != null}).');
   }
 
   // ==========================================

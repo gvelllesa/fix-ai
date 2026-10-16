@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'dart:async';
+import '../modules/obd/services/connection_manager.dart';
 import '../modules/obd/services/protocols/enet_hsfz_protocol.dart';
 import '../modules/obd/services/bmw_ecu_scanner.dart';
 import '../modules/obd/services/protocols/bluetooth_strategy.dart';
@@ -10,14 +11,9 @@ class ObdDataProcessor {
   final BluetoothStrategy _bluetoothStrategy = BluetoothStrategy();
   final WifiStrategy _wifiStrategy = WifiStrategy();
 
-  // Real BMW ENET / DoIP protocol engine
-  EnetHsfzProtocol? _enetProtocol;
   BmwEcuScanner? _ecuScanner;
 
-  EnetHsfzProtocol get enetProtocol {
-    _enetProtocol ??= EnetHsfzProtocol();
-    return _enetProtocol!;
-  }
+  EnetHsfzProtocol get enetProtocol => ConnectionManager.instance.protocol;
 
   BmwEcuScanner get ecuScanner {
     _ecuScanner ??= BmwEcuScanner(protocol: enetProtocol);
@@ -95,41 +91,48 @@ class ObdDataProcessor {
 
   /// Clears DTCs across all responding ECUs (UDS 0x14 0xFF 0xFF 0xFF)
   Future<int> clearAllFaultCodes({String? host, int? port}) async {
-    final protocol = enetProtocol;
-    final isConnected = await protocol.connect(
-      host: host ?? '192.168.16.101',
-      port: port ?? 35000,
-    );
-    if (!isConnected) return 0;
+    final cm = ConnectionManager.instance;
+    final needDisconnect = !cm.protocol.isConnected;
+    if (needDisconnect) {
+      final ok = await cm.connect(host: host ?? '192.168.16.101', port: port ?? 35000);
+      if (!ok) return 0;
+    }
 
     try {
-      final scanner = BmwEcuScanner(protocol: protocol);
-      final topology = BmwEcuScanner.getDefaultFSeriesTopology();
-      return await scanner.clearAllFaultCodes(topology);
+      return await cm.exclusive(() async {
+        final scanner = BmwEcuScanner(protocol: cm.protocol);
+        final topology = BmwEcuScanner.getDefaultFSeriesTopology();
+        return await scanner.clearAllFaultCodes(topology);
+      });
     } finally {
-      await protocol.disconnect();
+      if (needDisconnect) {
+        await cm.disconnect();
+      }
     }
   }
 
   /// Reads true vehicle VIN from DME / ZGW (UDS 0x22 0xF1 0x90)
   Future<String?> readVehicleVin({String? host, int? port}) async {
-    final protocol = enetProtocol;
-    final isConnected = await protocol.connect(
-      host: host ?? '192.168.16.101',
-      port: port ?? 35000,
-    );
-    if (!isConnected) return null;
+    final cm = ConnectionManager.instance;
+    final needDisconnect = !cm.protocol.isConnected;
+    if (needDisconnect) {
+      final ok = await cm.connect(host: host ?? '192.168.16.101', port: port ?? 35000);
+      if (!ok) return null;
+    }
 
     try {
-      return await protocol.readVin(0x12) ?? await protocol.readVin(0x10);
+      return await cm.exclusive(() async {
+        return await cm.protocol.readVin(0x12) ?? await cm.protocol.readVin(0x10);
+      });
     } finally {
-      await protocol.disconnect();
+      if (needDisconnect) {
+        await cm.disconnect();
+      }
     }
   }
 
   /// Disposes all internal resources
   void dispose() {
-    _enetProtocol?.disconnect();
     _bluetoothStrategy.dispose();
     _wifiStrategy.dispose();
   }

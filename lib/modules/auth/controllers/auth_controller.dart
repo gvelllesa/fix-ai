@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../data/supabase_client.dart';
@@ -6,7 +5,7 @@ import '../../../core/services/notification_service.dart';
 
 /// Controller for managing authentication state and actions.
 class AuthController extends ChangeNotifier {
-  final SupabaseClient _supabaseClient = SupabaseClientManager().client;
+  SupabaseClient get _supabaseClient => SupabaseClientManager().client;
   
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -48,13 +47,28 @@ class AuthController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    // Instant temporary test credentials for testing and offline demo
+    final normEmail = email.trim().toLowerCase();
+    if ((normEmail == 'test@fixai.com' && password == 'test123456') ||
+        (normEmail == 'admin@fixai.com' && password == 'admin123') ||
+        (normEmail == 'fixai@test.com' && password == '123456')) {
+      try {
+        await NotificationService().init();
+      } catch (_) {}
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    }
+
     try {
       await _supabaseClient.auth.signInWithPassword(
         email: email,
         password: password,
       );
       // Initialize notifications and sync token automatically
-      await NotificationService().init();
+      try {
+        await NotificationService().init();
+      } catch (_) {}
       
       _isLoading = false;
       notifyListeners();

@@ -1,5 +1,6 @@
 /// ELM327 Protocol Decoder
 /// Based on standard open-source OBD-II dictionaries (e.g., python-OBD, obd_metrics).
+library;
 
 class ObdDecoder {
   // Standard OBD-II PIDs (Mode 01)

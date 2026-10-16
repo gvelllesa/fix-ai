@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../garage/widgets/add_car_dialog.dart';
 import '../../obd/widgets/advanced_connection_dialog.dart';
+import '../../obd/screens/ecu_scan_screen.dart';
+import '../../obd/screens/live_telemetry_screen.dart';
+import '../../obd/screens/flash_tuning_screen.dart';
+import '../../obd/screens/xdrive_control_screen.dart';
+import '../../obd/screens/service_functions_screen.dart';
+import '../../obd/screens/coding_screen.dart';
 import '../../../core/theme/theme_controller.dart';
-import '../../../core/services/obd_api_service.dart';
 
 class FixAiDrawer extends StatefulWidget {
   final String? currentCarId;
@@ -75,53 +80,240 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                       elevation: 0,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
+                  // Real ECU Topology Scanner
                   ElevatedButton.icon(
                     onPressed: () async {
-                      showDialog(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (BuildContext c) => const Center(
-                          child: CircularProgressIndicator(),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (c) => EcuScanScreen(
+                            onSendToChat: (faults) {
+                              if (widget.onObdConnected != null && faults.isNotEmpty) {
+                                widget.onObdConnected!({
+                                  'code': faults.first.split(' ').first,
+                                  'faults': faults,
+                                  'description': faults.join('\n'),
+                                });
+                              }
+                            },
+                          ),
                         ),
                       );
-                      
-                      await Future.delayed(const Duration(seconds: 2));
-                      
-                      const mockCode = 'P0100';
-                      final description = await ObdApiService.fetchObdDescription(mockCode);
-                      
-                      if (context.mounted) {
-                        Navigator.pop(context); // Close loading dialog
-                      }
-
-                      if (widget.onObdConnected != null) {
-                        widget.onObdConnected!({
-                          'code': mockCode,
-                          'description': description ?? 'Unknown Error',
-                        });
-                      }
                     },
-                    icon: const Icon(Icons.bluetooth_connected, size: 20),
+                    icon: const Icon(Icons.memory, size: 20),
                     label: const Text(
-                      'OBD Scanner',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                      'ECU Topology & DTCs',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.brightness == Brightness.dark 
+                          ? Colors.white.withOpacity(0.06) 
+                          : Colors.black.withOpacity(0.06),
+                      foregroundColor: textPrimary,
+                      minimumSize: const Size(double.infinity, 44),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(
+                          color: accentColor.withOpacity(0.4),
+                          width: 1.0,
+                        ),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Real High-Speed Live Telemetry Gauges
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (c) => const LiveTelemetryScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.speed, size: 20),
+                    label: const Text(
+                      'Live Gauges & Logging',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: theme.brightness == Brightness.dark 
                           ? Colors.white.withOpacity(0.05) 
                           : Colors.black.withOpacity(0.05),
                       foregroundColor: textPrimary,
-                      minimumSize: const Size(double.infinity, 48),
+                      minimumSize: const Size(double.infinity, 44),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                         side: BorderSide(
                           color: theme.brightness == Brightness.dark
-                              ? Colors.white.withOpacity(0.1)
-                              : Colors.black.withOpacity(0.1)
+                              ? Colors.white.withOpacity(0.12)
+                              : Colors.black.withOpacity(0.12)
                         ),
                       ),
                       elevation: 0,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // BMW DME Tuning & Flash Options
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (c) => const FlashTuningScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.flash_on, size: 20, color: Colors.greenAccent),
+                    label: const Text(
+                      'BMW Tuning & Flash Options',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.brightness == Brightness.dark 
+                          ? Colors.white.withOpacity(0.05) 
+                          : Colors.black.withOpacity(0.05),
+                      foregroundColor: textPrimary,
+                      minimumSize: const Size(double.infinity, 44),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(
+                          color: Colors.greenAccent.withOpacity(0.4),
+                          width: 1.0,
+                        ),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // BMW xDrive / xDelete Transfer Case Controller
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (c) => const XDriveControlScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.all_inclusive, size: 20, color: Colors.cyanAccent),
+                    label: const Text(
+                      'xDrive / xDelete AWD Control',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.brightness == Brightness.dark 
+                          ? Colors.white.withValues(alpha: 0.05) 
+                          : Colors.black.withValues(alpha: 0.05),
+                      foregroundColor: textPrimary,
+                      minimumSize: const Size(double.infinity, 44),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(
+                          color: Colors.cyanAccent.withValues(alpha: 0.4),
+                          width: 1.0,
+                        ),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // BMW Workshop & Service Functions
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (c) => const ServiceFunctionsScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.handyman, size: 20, color: Colors.orangeAccent),
+                    label: const Text(
+                      'BMW Workshop & Service Functions',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.brightness == Brightness.dark 
+                          ? Colors.white.withValues(alpha: 0.05) 
+                          : Colors.black.withValues(alpha: 0.05),
+                      foregroundColor: textPrimary,
+                      minimumSize: const Size(double.infinity, 44),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(
+                          color: Colors.orangeAccent.withValues(alpha: 0.4),
+                          width: 1.0,
+                        ),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // BMW Coding & Cheat Codes
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (c) => const CodingScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.tune, size: 20, color: Colors.purpleAccent),
+                    label: const Text(
+                      'BMW Coding & Cheat Codes',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.brightness == Brightness.dark 
+                          ? Colors.white.withValues(alpha: 0.05) 
+                          : Colors.black.withValues(alpha: 0.05),
+                      foregroundColor: textPrimary,
+                      minimumSize: const Size(double.infinity, 44),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(
+                          color: Colors.purpleAccent.withValues(alpha: 0.4),
+                          width: 1.0,
+                        ),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Hardware Adapter Connection Setup
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final result = await showDialog<Map<String, dynamic>>(
+                        context: context,
+                        builder: (c) => const AdvancedConnectionDialog(),
+                      );
+                      if (result != null && result['status'] == 'connected') {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Connected to ${result['chassis']} (VIN: ${result['vin']}) at ${result['host']}:${result['port']}'),
+                            backgroundColor: accentColor,
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.settings_ethernet, size: 18),
+                    label: const Text(
+                      'Adapter Setup',
+                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: textSecondary,
+                      side: BorderSide(
+                        color: Colors.white.withOpacity(0.1),
+                      ),
+                      minimumSize: const Size(double.infinity, 38),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ],
