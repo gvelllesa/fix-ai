@@ -594,6 +594,18 @@ class XhpTcuOptions {
   final bool transmissionWarmupDisabled; // Disables cold transmission warmup program that holds gears high (ic_disable_warm_up)
   final TcuShiftSpeed shiftSpeed; // Shift speed profiles
 
+  // Extended Features reverse-engineered from xHP Flashtool v4.0 (Xhp.Api.Model.FlashSettings)
+  final bool dragRaceMode; // Staging brake-boost launch mode (DragRaceEnabled)
+  final int dragRaceActivationThreshold; // RPM staging threshold, default 3000 (DragRaceActivationTreshold)
+  final bool brakeBoostProtection; // Permits 2-foot brake boosting without ECU intervention (BrakeBoostProtectionEnabled)
+  final double brakeBoostProtectionValue; // Target boost allowed during brake boost, default 15.0 PSI (BrakeBoostProtectionValue)
+  final bool coastingModeDisabled; // Suppresses highway transmission neutral decoupling (CoastingModeEnabled)
+  final bool disableObdAlarm; // Disables OEM alarm siren when OBD adapter remains plugged in (DisableObdAlarmEnabled)
+  final bool disableTempMonitoring; // Extends thermal limp-mode threshold for track/dyno use (DisableTemperatureMonitoringEnabled)
+  final bool customCreepDisabled; // Disables automatic traffic idle crawl (CustomCreepEnabled)
+  final bool valetModeEnabled; // Valet mode: locks transmission to max 3rd gear / 3000 RPM (ValetModeEnabled)
+  final bool ignitionCutShifting; // Ignition/spark cut upshift program for faster shifts and exhaust bark (IgnitionCutShiftingEnabled)
+
   const XhpTcuOptions({
     this.linePressureBump = false,
     this.customLaunchControlEnabled = false,
@@ -610,6 +622,16 @@ class XhpTcuOptions {
     this.standstillDecouplingDisabled = false,
     this.transmissionWarmupDisabled = false,
     this.shiftSpeed = TcuShiftSpeed.sport,
+    this.dragRaceMode = false,
+    this.dragRaceActivationThreshold = 3000,
+    this.brakeBoostProtection = false,
+    this.brakeBoostProtectionValue = 15.0,
+    this.coastingModeDisabled = false,
+    this.disableObdAlarm = false,
+    this.disableTempMonitoring = false,
+    this.customCreepDisabled = false,
+    this.valetModeEnabled = false,
+    this.ignitionCutShifting = false,
   });
 
   XhpTcuOptions copyWith({
@@ -628,6 +650,16 @@ class XhpTcuOptions {
     bool? standstillDecouplingDisabled,
     bool? transmissionWarmupDisabled,
     TcuShiftSpeed? shiftSpeed,
+    bool? dragRaceMode,
+    int? dragRaceActivationThreshold,
+    bool? brakeBoostProtection,
+    double? brakeBoostProtectionValue,
+    bool? coastingModeDisabled,
+    bool? disableObdAlarm,
+    bool? disableTempMonitoring,
+    bool? customCreepDisabled,
+    bool? valetModeEnabled,
+    bool? ignitionCutShifting,
   }) {
     return XhpTcuOptions(
       linePressureBump: linePressureBump ?? this.linePressureBump,
@@ -645,6 +677,16 @@ class XhpTcuOptions {
       standstillDecouplingDisabled: standstillDecouplingDisabled ?? this.standstillDecouplingDisabled,
       transmissionWarmupDisabled: transmissionWarmupDisabled ?? this.transmissionWarmupDisabled,
       shiftSpeed: shiftSpeed ?? this.shiftSpeed,
+      dragRaceMode: dragRaceMode ?? this.dragRaceMode,
+      dragRaceActivationThreshold: dragRaceActivationThreshold ?? this.dragRaceActivationThreshold,
+      brakeBoostProtection: brakeBoostProtection ?? this.brakeBoostProtection,
+      brakeBoostProtectionValue: brakeBoostProtectionValue ?? this.brakeBoostProtectionValue,
+      coastingModeDisabled: coastingModeDisabled ?? this.coastingModeDisabled,
+      disableObdAlarm: disableObdAlarm ?? this.disableObdAlarm,
+      disableTempMonitoring: disableTempMonitoring ?? this.disableTempMonitoring,
+      customCreepDisabled: customCreepDisabled ?? this.customCreepDisabled,
+      valetModeEnabled: valetModeEnabled ?? this.valetModeEnabled,
+      ignitionCutShifting: ignitionCutShifting ?? this.ignitionCutShifting,
     );
   }
 
@@ -664,6 +706,16 @@ class XhpTcuOptions {
     'standstillDecouplingDisabled': standstillDecouplingDisabled,
     'transmissionWarmupDisabled': transmissionWarmupDisabled,
     'shiftSpeed': shiftSpeed.name,
+    'dragRaceMode': dragRaceMode,
+    'dragRaceActivationThreshold': dragRaceActivationThreshold,
+    'brakeBoostProtection': brakeBoostProtection,
+    'brakeBoostProtectionValue': brakeBoostProtectionValue,
+    'coastingModeDisabled': coastingModeDisabled,
+    'disableObdAlarm': disableObdAlarm,
+    'disableTempMonitoring': disableTempMonitoring,
+    'customCreepDisabled': customCreepDisabled,
+    'valetModeEnabled': valetModeEnabled,
+    'ignitionCutShifting': ignitionCutShifting,
   };
 
   factory XhpTcuOptions.fromJson(Map<String, dynamic> json) => XhpTcuOptions(
@@ -685,6 +737,16 @@ class XhpTcuOptions {
       (e) => e.name == json['shiftSpeed'],
       orElse: () => TcuShiftSpeed.sport,
     ),
+    dragRaceMode: json['dragRaceMode'] as bool? ?? false,
+    dragRaceActivationThreshold: json['dragRaceActivationThreshold'] as int? ?? 3000,
+    brakeBoostProtection: json['brakeBoostProtection'] as bool? ?? false,
+    brakeBoostProtectionValue: (json['brakeBoostProtectionValue'] as num?)?.toDouble() ?? 15.0,
+    coastingModeDisabled: json['coastingModeDisabled'] as bool? ?? false,
+    disableObdAlarm: json['disableObdAlarm'] as bool? ?? false,
+    disableTempMonitoring: json['disableTempMonitoring'] as bool? ?? false,
+    customCreepDisabled: json['customCreepDisabled'] as bool? ?? false,
+    valetModeEnabled: json['valetModeEnabled'] as bool? ?? false,
+    ignitionCutShifting: json['ignitionCutShifting'] as bool? ?? false,
   );
 
   /// 16-byte TCU Calibration payload for UDS DID 0xD440 on EGS ECU (0x18)
@@ -705,7 +767,18 @@ class XhpTcuOptions {
   /// Byte 4: Launch Boost Target PSI * 10 (8-bit, 0 - 200 for 0.0 - 20.0 PSI)
   /// Byte 5: Throttle Blip Aggressiveness (8-bit, 80% to 150%)
   /// Bytes 6-7: Max Shift RPM (16-bit big-endian unsigned, 6000 - 7500 RPM)
-  /// Bytes 8-15: 8 Reserved / Padding Bytes [0x00 * 8]
+  /// Byte 8: Bitfield 3 (Advanced Features - Reverse-engineered from xHP v4.0)
+  ///   - Bit 0: Drag Race Staging Mode
+  ///   - Bit 1: Brake Boost Protection
+  ///   - Bit 2: Coasting Mode Disabled
+  ///   - Bit 3: Disable OBD Port Alarm
+  ///   - Bit 4: Disable Temperature Limiter Monitoring
+  ///   - Bit 5: Custom Creep Disabled
+  ///   - Bit 6: Valet Mode Lockout
+  ///   - Bit 7: Ignition Cut Shifting
+  /// Byte 9: Drag Race Activation Threshold / 20 (e.g. 3000 -> 150)
+  /// Byte 10: Brake Boost Protection Target PSI * 10 (e.g. 15.0 -> 150)
+  /// Bytes 11-15: 5 Reserved / Padding Bytes [0x00 * 5]
   List<int> toBytes() {
     int b0 = 0;
     if (linePressureBump) b0 |= 0x01;
@@ -733,6 +806,19 @@ class XhpTcuOptions {
     final b6 = (clampedMaxShiftRpm >> 8) & 0xFF;
     final b7 = clampedMaxShiftRpm & 0xFF;
 
+    int b8 = 0;
+    if (dragRaceMode) b8 |= 0x01;
+    if (brakeBoostProtection) b8 |= 0x02;
+    if (coastingModeDisabled) b8 |= 0x04;
+    if (disableObdAlarm) b8 |= 0x08;
+    if (disableTempMonitoring) b8 |= 0x10;
+    if (customCreepDisabled) b8 |= 0x20;
+    if (valetModeEnabled) b8 |= 0x40;
+    if (ignitionCutShifting) b8 |= 0x80;
+
+    final b9 = dragRaceMode ? ((dragRaceActivationThreshold.clamp(2000, 4500) ~/ 20) & 0xFF) : 0x00;
+    final b10 = brakeBoostProtection ? ((brakeBoostProtectionValue.clamp(0.0, 25.0) * 10).round() & 0xFF) : 0x00;
+
     return [
       b0,
       b1,
@@ -742,9 +828,9 @@ class XhpTcuOptions {
       b5,
       b6,
       b7,
-      0x00,
-      0x00,
-      0x00,
+      b8,
+      b9,
+      b10,
       0x00,
       0x00,
       0x00,
@@ -782,6 +868,19 @@ class XhpTcuOptions {
     final blipVal = bytes[5].clamp(80, 150);
     final maxRpmVal = ((bytes[6] << 8) | bytes[7]).clamp(6000, 7500);
 
+    final b8 = bytes[8];
+    final dragRace = (b8 & 0x01) != 0;
+    final brakeBoost = (b8 & 0x02) != 0;
+    final coastingDisabled = (b8 & 0x04) != 0;
+    final noObdAlarm = (b8 & 0x08) != 0;
+    final noTempMon = (b8 & 0x10) != 0;
+    final noCreep = (b8 & 0x20) != 0;
+    final valet = (b8 & 0x40) != 0;
+    final ignCut = (b8 & 0x80) != 0;
+
+    final dragThresh = bytes[9] > 0 ? (bytes[9] * 20).clamp(2000, 4500) : 3000;
+    final boostProtVal = bytes[10] > 0 ? (bytes[10] / 10.0).clamp(0.0, 25.0) : 15.0;
+
     return XhpTcuOptions(
       linePressureBump: linePressure,
       customLaunchControlEnabled: launchCtrl,
@@ -798,6 +897,16 @@ class XhpTcuOptions {
       standstillDecouplingDisabled: noStandstillDecouple,
       transmissionWarmupDisabled: noWarmup,
       shiftSpeed: shiftSpeed,
+      dragRaceMode: dragRace,
+      dragRaceActivationThreshold: dragThresh,
+      brakeBoostProtection: brakeBoost,
+      brakeBoostProtectionValue: boostProtVal,
+      coastingModeDisabled: coastingDisabled,
+      disableObdAlarm: noObdAlarm,
+      disableTempMonitoring: noTempMon,
+      customCreepDisabled: noCreep,
+      valetModeEnabled: valet,
+      ignitionCutShifting: ignCut,
     );
   }
 }
@@ -836,6 +945,12 @@ class BmwFlashOptions {
   OtsMapStage slot2Stage;
   OtsMapStage slot3Stage;
   String slot4Description;
+
+  // Additional MHD DME Features (reverse-engineered from MHD ECU_Tools.FlashOptions)
+  bool intercoolerWaterPumpOverride; // Forces 100% duty cycle on B58/S55 charge-air water pump (FMICwaterpump)
+  bool activeGrilleShutterOpen; // Keeps active kidney grille shutters open for track cooling (ForceOpenShutterFlaps)
+  bool singleBankConversion; // Calibrates single turbo conversion on N54/N55 (SingleBank)
+  bool portInjectionSafetyCut; // Cuts boost if port injection auxiliary fuel rail pressure drops (PIsafety)
 
   // FlexFuel CAN & Sensor Options
   bool flexFuelEnabled;
@@ -903,6 +1018,10 @@ class BmwFlashOptions {
     this.slot2Stage = OtsMapStage.stage1_93,
     this.slot3Stage = OtsMapStage.stage2plus_e30,
     this.slot4Description = 'Anti-Theft / Valet (30 km/h / 2500 RPM limit)',
+    this.intercoolerWaterPumpOverride = false,
+    this.activeGrilleShutterOpen = false,
+    this.singleBankConversion = false,
+    this.portInjectionSafetyCut = false,
     this.flexFuelEnabled = true,
     this.flexFuelSensorType = FlexFuelSensorType.canBus0x4F0,
     this.maxEthanolBoostScalar = 1.35,
@@ -949,6 +1068,10 @@ class BmwFlashOptions {
     OtsMapStage? slot2Stage,
     OtsMapStage? slot3Stage,
     String? slot4Description,
+    bool? intercoolerWaterPumpOverride,
+    bool? activeGrilleShutterOpen,
+    bool? singleBankConversion,
+    bool? portInjectionSafetyCut,
     bool? flexFuelEnabled,
     FlexFuelSensorType? flexFuelSensorType,
     double? maxEthanolBoostScalar,
@@ -986,6 +1109,10 @@ class BmwFlashOptions {
       slot2Stage: slot2Stage ?? this.slot2Stage,
       slot3Stage: slot3Stage ?? this.slot3Stage,
       slot4Description: slot4Description ?? this.slot4Description,
+      intercoolerWaterPumpOverride: intercoolerWaterPumpOverride ?? this.intercoolerWaterPumpOverride,
+      activeGrilleShutterOpen: activeGrilleShutterOpen ?? this.activeGrilleShutterOpen,
+      singleBankConversion: singleBankConversion ?? this.singleBankConversion,
+      portInjectionSafetyCut: portInjectionSafetyCut ?? this.portInjectionSafetyCut,
       flexFuelEnabled: flexFuelEnabled ?? this.flexFuelEnabled,
       flexFuelSensorType: flexFuelSensorType ?? this.flexFuelSensorType,
       maxEthanolBoostScalar: maxEthanolBoostScalar ?? this.maxEthanolBoostScalar,
@@ -1028,6 +1155,10 @@ class BmwFlashOptions {
     'slot2Stage': slot2Stage.name,
     'slot3Stage': slot3Stage.name,
     'slot4Description': slot4Description,
+    'intercoolerWaterPumpOverride': intercoolerWaterPumpOverride,
+    'activeGrilleShutterOpen': activeGrilleShutterOpen,
+    'singleBankConversion': singleBankConversion,
+    'portInjectionSafetyCut': portInjectionSafetyCut,
     'flexFuelEnabled': flexFuelEnabled,
     'flexFuelSensorType': flexFuelSensorType.name,
     'maxEthanolBoostScalar': maxEthanolBoostScalar,
@@ -1111,6 +1242,10 @@ class BmwFlashOptions {
         orElse: () => OtsMapStage.stage2plus_e30,
       ),
       slot4Description: json['slot4Description'] as String? ?? 'Anti-Theft / Valet (30 km/h / 2500 RPM limit)',
+      intercoolerWaterPumpOverride: json['intercoolerWaterPumpOverride'] as bool? ?? false,
+      activeGrilleShutterOpen: json['activeGrilleShutterOpen'] as bool? ?? false,
+      singleBankConversion: json['singleBankConversion'] as bool? ?? false,
+      portInjectionSafetyCut: json['portInjectionSafetyCut'] as bool? ?? false,
       flexFuelEnabled: json['flexFuelEnabled'] as bool? ?? true,
       flexFuelSensorType: FlexFuelSensorType.values.firstWhere(
         (e) => e.name == json['flexFuelSensorType'],

@@ -39,6 +39,11 @@ void main() {
         'knock_detected',
         'flex_ethanol_pct',
         'flex_fuel_temp',
+        'trans_oil_temp',
+        'vtg_clutch_temp',
+        'vtg_front_torque_ratio',
+        'charge_air_temp',
+        'gearbox_input_torque',
       ];
 
       for (final id in requiredSensorIds) {

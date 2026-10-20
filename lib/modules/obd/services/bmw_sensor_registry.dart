@@ -809,6 +809,88 @@ class BmwSensorRegistry {
       offset: 0.0,
       category: 'Thermals & Oil',
     ),
+
+    // --- REVERSE-ENGINEERED FROM xHP, xDelete, BimmerLink & MHD ---
+    BmwSensorDefinition(
+      id: 'trans_oil_temp',
+      label: 'Transmission Fluid Temp',
+      did: 0x5825,
+      ecu: 0x18, // EGS TCU
+      size: 1,
+      unit: '°C',
+      min: -40,
+      max: 160,
+      warningThreshold: 120,
+      dangerThreshold: 135,
+      decimals: 1,
+      scale: 1.0,
+      offset: -40.0,
+      category: 'Thermals & Oil',
+    ),
+    BmwSensorDefinition(
+      id: 'vtg_clutch_temp',
+      label: 'VTG Transfer Clutch Temp',
+      did: 0xD032,
+      ecu: 0x19, // VTG Transfer Case
+      size: 1,
+      unit: '°C',
+      min: -40,
+      max: 180,
+      warningThreshold: 130,
+      dangerThreshold: 150,
+      decimals: 1,
+      scale: 1.0,
+      offset: -40.0,
+      category: 'Thermals & Oil',
+    ),
+    BmwSensorDefinition(
+      id: 'vtg_front_torque_ratio',
+      label: 'VTG Front Torque Split',
+      did: 0xD030,
+      ecu: 0x19, // VTG Transfer Case
+      size: 1,
+      unit: '%',
+      min: 0,
+      max: 50,
+      warningThreshold: 45,
+      dangerThreshold: 50,
+      decimals: 1,
+      scale: 0.3937, // 0-127 raw -> 0-50% front torque
+      offset: 0.0,
+      category: 'Drivetrain',
+    ),
+    BmwSensorDefinition(
+      id: 'charge_air_temp',
+      label: 'Charge Air Cooler Temp',
+      did: 0x581A,
+      ecu: 0x12, // DME
+      size: 1,
+      unit: '°C',
+      min: -40,
+      max: 120,
+      warningThreshold: 55,
+      dangerThreshold: 70,
+      decimals: 1,
+      scale: 0.75,
+      offset: -48.0,
+      category: 'Boost & Air',
+    ),
+    BmwSensorDefinition(
+      id: 'gearbox_input_torque',
+      label: 'Transmission Input Torque',
+      did: 0x5882,
+      ecu: 0x18, // EGS TCU
+      size: 2,
+      unit: 'Nm',
+      min: 0,
+      max: 1200,
+      warningThreshold: 850,
+      dangerThreshold: 1000,
+      decimals: 0,
+      scale: 0.5,
+      offset: 0.0,
+      category: 'Drivetrain',
+    ),
   ];
 
   static BmwSensorDefinition? findById(String id) {

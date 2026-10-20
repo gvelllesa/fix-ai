@@ -215,6 +215,45 @@ void main() {
       expect(summary.containsKey('tcu_warmup_disabled'), isTrue);
       expect(summary.containsKey('tcu_shift_speed'), isTrue);
     });
+
+    test('Extended xHP v4.0 settings (DragRace, BrakeBoost, Coasting, Valet) round-trip properly', () {
+      const extendedOptions = XhpTcuOptions(
+        dragRaceMode: true,
+        dragRaceActivationThreshold: 3400,
+        brakeBoostProtection: true,
+        brakeBoostProtectionValue: 18.5,
+        coastingModeDisabled: true,
+        disableObdAlarm: true,
+        disableTempMonitoring: true,
+        customCreepDisabled: true,
+        valetModeEnabled: true,
+        ignitionCutShifting: true,
+      );
+
+      final bytes = extendedOptions.toBytes();
+      expect(bytes.length, equals(16));
+
+      // Byte 8: Bitfield 3 (All 8 bits enabled -> 0xFF)
+      expect(bytes[8], equals(0xFF));
+
+      // Byte 9: 3400 / 20 = 170
+      expect(bytes[9], equals(170));
+
+      // Byte 10: 18.5 * 10 = 185
+      expect(bytes[10], equals(185));
+
+      final restored = XhpTcuOptions.fromBytes(bytes);
+      expect(restored.dragRaceMode, isTrue);
+      expect(restored.dragRaceActivationThreshold, equals(3400));
+      expect(restored.brakeBoostProtection, isTrue);
+      expect(restored.brakeBoostProtectionValue, equals(18.5));
+      expect(restored.coastingModeDisabled, isTrue);
+      expect(restored.disableObdAlarm, isTrue);
+      expect(restored.disableTempMonitoring, isTrue);
+      expect(restored.customCreepDisabled, isTrue);
+      expect(restored.valetModeEnabled, isTrue);
+      expect(restored.ignitionCutShifting, isTrue);
+    });
   });
 
   group('BmwCustomRomService TCU Communication & UDS Payloads', () {
