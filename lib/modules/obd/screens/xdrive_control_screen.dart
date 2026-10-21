@@ -391,7 +391,7 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
             SizedBox(width: 8),
             Expanded(
               child: Text(
-                'xDrive / xDelete',
+                'xDrive Mode Control',
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
               ),

@@ -737,7 +737,7 @@ class _ActuatorTestingModalState extends State<_ActuatorTestingModal> {
                       style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      'ISTA / ProTool Diagnostic Routines (UDS 0x2F / 0x31)',
+                      'Advanced Factory Diagnostic Routines (UDS 0x2F / 0x31)',
                       style: TextStyle(color: Colors.white38, fontSize: 11),
                     ),
                   ],

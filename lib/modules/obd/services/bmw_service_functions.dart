@@ -2445,7 +2445,7 @@ class BmwServiceFunctions {
         details: {
           'channel': channel.label,
           'channelsCleared': successCount,
-          'routine': '0xB001 (EDIABAS _reset_kurzschluss_sperre)',
+          'routine': '0xB001 (_reset_kurzschluss_sperre)',
         },
       );
     } catch (e) {
@@ -5075,7 +5075,7 @@ class BmwServiceFunctions {
       return ServiceRoutineResult(
         success: true,
         title: 'B-Series Coolant Bleed Activated',
-        message: 'Split-Cooling Heat Management automatic air-purge routine activated on DME.\n\n• Routine: 0x31 0x01 10 03 01 (ISTA ABL_DIT_AS1214_BX8_ENTKUEHL)\n• Infocode: D1150_ENTKUEHL_99_320\n• Active duration: 12 minutes (rotary valve + auxiliary electric pump cycling)',
+        message: 'Split-Cooling Heat Management automatic air-purge routine activated on DME.\n\n• Routine: 0x31 0x01 10 03 01 (ABL_DIT_AS1214_BX8_ENTKUEHL)\n• Infocode: D1150_ENTKUEHL_99_320\n• Active duration: 12 minutes (rotary valve + auxiliary electric pump cycling)',
         rawResponse: resp,
       );
     } catch (e) {

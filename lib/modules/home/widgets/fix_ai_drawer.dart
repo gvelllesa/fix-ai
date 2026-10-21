@@ -188,7 +188,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // BMW xDrive / xDelete Transfer Case Controller
+                  // BMW xDrive Transfer Case Controller
                   ElevatedButton.icon(
                     onPressed: () {
                       Navigator.push(
@@ -200,7 +200,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                     },
                     icon: const Icon(Icons.all_inclusive, size: 20, color: Colors.cyanAccent),
                     label: const Text(
-                      'xDrive / xDelete AWD Control',
+                      'xDrive AWD Torque Distribution',
                       style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                     ),
                     style: ElevatedButton.styleFrom(
@@ -329,7 +329,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                   // HISTORY
                   _buildSubHeader('HISTORY', Icons.history, textTertiary),
                   _buildHistoryItem(context, 'N55 Engine Misfire Analysis', isActive: true, accentColor: accentColor),
-                  _buildHistoryItem(context, 'ISTA Steering Rack Calibration', isActive: false, accentColor: accentColor),
+                  _buildHistoryItem(context, 'Steering Rack Zero-Point Calibration', isActive: false, accentColor: accentColor),
                   
                   const SizedBox(height: 24),
                   
@@ -574,7 +574,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Unlimited advanced ISTA-level diagnostics & OBD scans',
+                          'Unlimited advanced factory-grade diagnostics & OBD scans',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.8),
                             fontSize: 13,

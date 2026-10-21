@@ -62,7 +62,7 @@ class ChatDrawer extends StatelessWidget {
                   // History
                   _buildSectionHeader('HISTORY', Icons.history),
                   _buildNavItem(context, 'N55 Engine Misfire Analysis', false),
-                  _buildNavItem(context, 'ISTA Steering Rack Calibration', false),
+                  _buildNavItem(context, 'Steering Rack Zero-Point Calibration', false),
                   const SizedBox(height: 24),
 
                   // My Garage

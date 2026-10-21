@@ -258,7 +258,7 @@ class OfflineDatabaseManager {
           .map((r) => IstaServiceRoutine.fromJson(r as Map<String, dynamic>))
           .toList();
       _ecuDiagnosticJobs = istaJson['ecu_diagnostic_jobs'] as Map<String, dynamic>? ?? {};
-      debugPrint('[OfflineDatabaseManager] Loaded ${_serviceRoutines.length} ISTA service routines.');
+      debugPrint('[OfflineDatabaseManager] Loaded ${_serviceRoutines.length} factory service routines.');
 
       _isInitialized = true;
     } catch (e, st) {

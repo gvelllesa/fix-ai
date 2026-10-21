@@ -345,7 +345,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
     if (!isOnline) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('ავტომობილი გამორთულია. xHP TCU ჩასაწერად შეაერთეთ OBD/ENET ადაპტერი.'),
+          content: Text('ავტომობილი გამორთულია. TCU კალიბრაციის ჩასაწერად შეაერთეთ OBD/ENET ადაპტერი.'),
           backgroundColor: Color(0xFF161B22),
         ),
       );
@@ -360,7 +360,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
         SnackBar(
           content: Text(
             ok
-                ? '⚡ xHP TCU Calibration written to EGS (0x18 / DID 0xD440) successfully!'
+                ? '⚡ TCU Transmission Calibration written to EGS (0x18 / DID 0xD440) successfully!'
                 : 'Failed to write TCU calibration to EGS ECU 0x18. Verify OBD/ENET connection.',
           ),
           backgroundColor: ok ? Colors.green.shade800 : Colors.red.shade900,
@@ -734,13 +734,13 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
                           Text('• Catless Downpipe CEL Mask: ${_options.catlessSuppression.enabled ? "Suppressed (180001, 12B104, 180002, P0420, P0430)" : "OEM Monitoring"}', style: const TextStyle(color: Colors.white, fontSize: 12)),
                           Text('• Multimap Enabled: ${_options.multimapEnabled ? "YES (Slots 1-4)" : "NO"}', style: const TextStyle(color: Colors.white, fontSize: 12)),
                           Text('• FlexFuel Sensor: ${_options.flexFuelEnabled ? "CAN 0x4F0 Active" : "Disabled"}', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                          Text('• xHP Line Pressure Bump: ${_options.tcuOptions.linePressureBump ? "19 Bar High Clamping (800+ Nm)" : "Stock Clamping"}', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                          Text('• xHP Custom Launch: ${_options.tcuOptions.customLaunchControlEnabled ? "${_options.tcuOptions.launchRpm} RPM, ${_options.tcuOptions.launchBoostPsi} PSI, Punch Lvl ${_options.tcuOptions.torquePunch}" : "Disabled"}', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                          Text('• xHP Shift Speed: ${_options.tcuOptions.shiftSpeed.label} | Max Shift: ${_options.tcuOptions.maxShiftRpm} RPM', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                          Text('• xHP True Manual Mode (Rev Limiter Hold): ${_options.tcuOptions.trueManualMode ? "ENABLED" : "Disabled"}', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                          Text('• xHP Kickdown Lockout (M Mode): ${_options.tcuOptions.kickdownManualDisabled ? "Inhibited" : "OEM"} | 2nd Gear Launch: ${_options.tcuOptions.takeOffIn2ndGear ? "Active" : "1st Gear"}', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                          Text('• xHP Downshift Blips: ${_options.tcuOptions.throttleBlipAggressiveness}% | Kombi Display: ${_options.tcuOptions.gearDisplayKombi ? "D1..D8 / S1..S8" : "OEM D/S"}', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                          Text('• xHP Torque Limits Per Gear: ${_options.tcuOptions.torqueLimitsPerGearRemoved ? "Removed (1st-8th)" : "Active"} | Standstill Decoupling: ${_options.tcuOptions.standstillDecouplingDisabled ? "Disabled (Instant)" : "Stock"}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                          Text('• TCU Line Pressure Bump: ${_options.tcuOptions.linePressureBump ? "19 Bar High Clamping (800+ Nm)" : "Stock Clamping"}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                          Text('• TCU Custom Launch: ${_options.tcuOptions.customLaunchControlEnabled ? "${_options.tcuOptions.launchRpm} RPM, ${_options.tcuOptions.launchBoostPsi} PSI, Punch Lvl ${_options.tcuOptions.torquePunch}" : "Disabled"}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                          Text('• TCU Shift Speed: ${_options.tcuOptions.shiftSpeed.label} | Max Shift: ${_options.tcuOptions.maxShiftRpm} RPM', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                          Text('• TCU True Manual Mode (Rev Limiter Hold): ${_options.tcuOptions.trueManualMode ? "ENABLED" : "Disabled"}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                          Text('• TCU Kickdown Lockout (M Mode): ${_options.tcuOptions.kickdownManualDisabled ? "Inhibited" : "OEM"} | 2nd Gear Launch: ${_options.tcuOptions.takeOffIn2ndGear ? "Active" : "1st Gear"}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                          Text('• TCU Downshift Blips: ${_options.tcuOptions.throttleBlipAggressiveness}% | Kombi Display: ${_options.tcuOptions.gearDisplayKombi ? "D1..D8 / S1..S8" : "OEM D/S"}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                          Text('• TCU Torque Limits Per Gear: ${_options.tcuOptions.torqueLimitsPerGearRemoved ? "Removed (1st-8th)" : "Active"} | Standstill Decoupling: ${_options.tcuOptions.standstillDecouplingDisabled ? "Disabled (Instant)" : "Stock"}', style: const TextStyle(color: Colors.white, fontSize: 12)),
                         ],
                       ),
                     ),
@@ -944,7 +944,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Bootmod3 & MHD Custom ROM Active',
+                      'Custom Calibrated ROM Active',
                       style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 2),
@@ -2409,7 +2409,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('13. ZF 8HP / 6HP Transmission Tuning (xHP Parity)', Icons.speed),
+        _buildSectionHeader('13. ZF 8HP / 6HP Transmission Calibration', Icons.speed),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -2438,12 +2438,12 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'ZF 8HP / 6HP Transmission Tuning (xHP Parity)',
+                          'ZF 8HP / 6HP Transmission Calibration',
                           style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Advanced TCU calibration parity for ZF 8HP & 6HP gearboxes (com.rbttuning.xhpflashtool). Controls line pressure, custom launch, rev limiter hold, and shift profiles via UDS DID 0xD440 on EGS (ECU 0x18).',
+                          'Advanced TCU calibration for ZF 8HP & 6HP gearboxes. Controls line pressure, custom launch, rev limiter hold, and shift profiles via UDS DID 0xD440 on EGS (ECU 0x18).',
                           style: TextStyle(color: Colors.white60, fontSize: 11, height: 1.3),
                         ),
                       ],

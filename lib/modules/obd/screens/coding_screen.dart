@@ -772,7 +772,7 @@ class _CodingScreenState extends State<CodingScreen>
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('E-Sys Suggestions (Tap to select):', style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
+                                  const Text('Factory Suggestions (Tap to select):', style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
                                   const SizedBox(height: 6),
                                   Wrap(
                                     spacing: 6,
@@ -1857,7 +1857,7 @@ class _CodingScreenState extends State<CodingScreen>
                     ),
                   ),
                   child: const Text(
-                    'PROTOOL',
+                    'ADVANCED',
                     style: TextStyle(
                       color: _neonPurple,
                       fontSize: 9,

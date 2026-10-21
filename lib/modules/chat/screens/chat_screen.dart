@@ -287,7 +287,7 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
           Navigator.pop(context); // Close the drawer
           final faults = payload['faults'] as List<String>?;
           if (faults != null && faults.isNotEmpty) {
-            final prompt = "I performed a full ECU topology scan and found the following vehicle fault codes:\n${faults.map((f) => "- $f").join("\n")}\n\nPlease provide an ISTA-level root-cause diagnosis, sensor plausibility check, and recommended repair procedure.";
+            final prompt = "I performed a full ECU topology scan and found the following vehicle fault codes:\n${faults.map((f) => "- $f").join("\n")}\n\nPlease provide an advanced factory root-cause diagnosis, sensor plausibility check, and recommended repair procedure.";
             _controller.sendMessage(prompt, widget.carProfile);
           } else {
             final code = payload['code'];

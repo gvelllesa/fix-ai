@@ -565,7 +565,7 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'რეგისტრაციის ისტორია (ISTA)',
+                              'რეგისტრაციის ისტორია (ქარხნული)',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -1113,7 +1113,7 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
   // ===========================================================================
   Future<void> _handleDscBrakeBleeding() async {
     final safetyOk = await _showSafetyDialog(
-      title: 'ISTA Guided 4-Corner Brake Bleeding',
+      title: 'Guided 4-Corner Brake Bleeding (DSC_ENTL)',
       description: 'Automated hydraulic procedure (ABL_DIT_AS3450_ENTL / DSC_ENTLUEFTUNG) purges air from each wheel circuit.\n\nConnect pressurized brake bleeder (approx 1.5 - 2.0 bar) and ensure reservoir is FULL.\n\nRecommended Sequence: Rear Right -> Rear Left -> Front Right -> Front Left.',
       accentColor: Colors.redAccent,
       extraChecks: [
@@ -1216,7 +1216,7 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'ISTA 4-Corner Brake Bleeding',
+                                'Guided 4-Corner Brake Bleeding',
                                 style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
                               ),
                               Text(
@@ -1436,7 +1436,7 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
   Future<void> _handleHeadlightInitialization() async {
     final safetyOk = await _showSafetyDialog(
       title: 'Adaptive Headlight & LED Leveling Initialization',
-      description: 'Executes Stepper Motor Reference Run and chassis ride height sensor zeroing (ISTA FLE_INIT).\n\nVehicle must be parked on flat, level ground with normal unladen weight.',
+      description: 'Executes Stepper Motor Reference Run and chassis ride height sensor zeroing (FLE_INIT).\n\nVehicle must be parked on flat, level ground with normal unladen weight.',
       accentColor: Colors.cyanAccent,
       extraChecks: [
         'Vehicle parked on level horizontal workshop surface',
@@ -1543,7 +1543,7 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
   Future<void> _handleVtgClutchCalibration() async {
     final safetyOk = await _showSafetyDialog(
       title: 'xDrive VTG Transfer Case Clutch Calibration',
-      description: 'Executes actuator motor learn & multi-plate clutch kiss-point calibration (ISTA ABL_DIT_AS2700_VTG).\n\nGear selector must be in PARK or NEUTRAL. Engine must NOT be running.',
+      description: 'Executes actuator motor learn & multi-plate clutch kiss-point calibration (ABL_DIT_AS2700_VTG).\n\nGear selector must be in PARK or NEUTRAL. Engine must NOT be running.',
       accentColor: Colors.deepOrangeAccent,
       extraChecks: [
         'Transmission selector in PARK or NEUTRAL',
@@ -1587,7 +1587,7 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
   Future<void> _handleSunroofNormalization() async {
     final safetyOk = await _showSafetyDialog(
       title: 'Sunroof Anti-Pinch Normalization',
-      description: 'Triggers automated glass panel and sunblind travel cycle to learn mechanical end-stops and pinch force characteristics (ISTA ABL_DIT_AS6131_SHD).\n\nKeep fingers and foreign objects completely clear of the sunroof aperture!',
+      description: 'Triggers automated glass panel and sunblind travel cycle to learn mechanical end-stops and pinch force characteristics (ABL_DIT_AS6131_SHD).\n\nKeep fingers and foreign objects completely clear of the sunroof aperture!',
       accentColor: Colors.indigoAccent,
       extraChecks: [
         'Sunroof guide rails clear of obstructions and debris',
@@ -1627,7 +1627,7 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
   Future<void> _handlePowerWindowsNormalization() async {
     final safetyOk = await _showSafetyDialog(
       title: 'Power Windows Anti-Pinch Normalization',
-      description: 'Cycles all four power windows to re-learn pinch limits and upper/lower physical end-stops (ISTA FH_NORM).\n\nEnsure window apertures are completely unobstructed!',
+      description: 'Cycles all four power windows to re-learn pinch limits and upper/lower physical end-stops (FH_NORM).\n\nEnsure window apertures are completely unobstructed!',
       accentColor: Colors.indigoAccent,
       extraChecks: [
         'All doors closed and window glass clear of obstacles',
@@ -2558,7 +2558,7 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
                               style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
                             ),
                             Text(
-                              'EDIABAS _reset_kurzschluss_sperre (Routine 0xB001)',
+                              'FRM _reset_kurzschluss_sperre (Routine 0xB001)',
                               style: TextStyle(color: Colors.white38, fontSize: 11, fontFamily: 'monospace'),
                             ),
                           ],
@@ -3822,7 +3822,7 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
                           ),
                           SizedBox(height: 2),
                           Text(
-                            'Reverse-engineered from BMW ISTA & BimmerGeeks ProTool. Executes directly against vehicle ECUs via ENET.',
+                            'Factory ISO 14229 diagnostic routines. Executes directly against vehicle ECUs via ENET.',
                             style: TextStyle(color: Colors.white60, fontSize: 11),
                           ),
                         ],
@@ -3875,7 +3875,7 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
                       OutlinedButton.icon(
                         onPressed: _isActionRunning ? null : _showBatteryHistoryModal,
                         icon: const Icon(Icons.history, size: 16),
-                        label: const Text('რეგისტრაციის ისტორია (ISTA)'),
+                        label: const Text('რეგისტრაციის ისტორია'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.cyanAccent,
                           side: BorderSide(color: Colors.cyanAccent.withValues(alpha: 0.5)),
@@ -4137,7 +4137,7 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
 
                   // Routine 13: Adaptive Headlight & LED Leveling Initialization (ISTA FLE_INIT)
                   _buildRoutineCard(
-                    title: 'Adaptive Headlight & LED Leveling Initialization (ISTA FLE_INIT)',
+                    title: 'Adaptive Headlight & LED Leveling Initialization (FLE_INIT)',
                     subtitle: 'Stepper Motor Reference Run & Height Sensor Zeroing (ABL_DIT_AS6300_SCHEINWERFER) across FLEL 0x43, FLER 0x44, and FEM 0x40.',
                     ecuBadge: 'FLEL 0x43 / FLER 0x44 / FEM 0x40',
                     routineCode: 'UDS Routine 0x31 0x01 D0 40',
@@ -4158,7 +4158,7 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
 
                   // Routine 14: xDrive VTG Transfer Case Clutch Calibration (ISTA)
                   _buildRoutineCard(
-                    title: 'xDrive VTG Transfer Case Clutch Calibration (ISTA)',
+                    title: 'xDrive VTG Transfer Case Clutch Calibration (VTG_KALIBRIERUNG)',
                     subtitle: 'Read degradation index & max torque (DID 0xD210), and calibrate clutch kiss-point & actuator motor (ABL_DIT_AS2700_VTG).',
                     ecuBadge: 'VTG 0x19',
                     routineCode: 'UDS Routine 0xA101 & DID 0xD210',
@@ -4189,7 +4189,7 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
 
                   // Routine 15: Sunroof & Power Windows Normalization (ISTA)
                   _buildRoutineCard(
-                    title: 'Sunroof & Power Windows Normalization (ISTA)',
+                    title: 'Sunroof & Power Windows Normalization',
                     subtitle: 'Learn anti-pinch force curves and mechanical end-stops for panoramic sunroof (FZD 0x56) and power windows (FEM 0x40).',
                     ecuBadge: 'FZD 0x56 & FEM 0x40',
                     routineCode: 'UDS Routine 0xD050 / 0xD051',
@@ -5336,7 +5336,7 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
                           ),
                           SizedBox(width: 8),
                           Text(
-                            'ProTool Workshop Routines',
+                            'Advanced Workshop Routines',
                             style: TextStyle(
                               color: Colors.white38,
                               fontSize: 10,

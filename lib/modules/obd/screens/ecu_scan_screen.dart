@@ -262,7 +262,7 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'აირჩიეთ ECU-ს გადატვირთვის ტიპი (ISTA Reset Steuergerät):',
+                      'აირჩიეთ ECU-ს გადატვირთვის ტიპი (Reset Steuergerät):',
                       style: TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                     const SizedBox(height: 12),
