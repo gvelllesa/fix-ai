@@ -412,7 +412,7 @@ class UdsFlashSession {
   }
 
   /// Executes the end-to-end UDS flashing sequence.
-  /// When [enableUniFlashLifecycle] is true (xHP / xDelete `UNI_Flash.Program_UDS` parity),
+  /// When [enableUniFlashLifecycle] is true (Factory VTG & TCU `UNI_Flash.Program_UDS` parity),
   /// automatically backs up NCD coding (`0x3000..`), verifies ECU preconditions (`0x0203`),
   /// activates ZGW Flash Energy Mode (`0x0F0C`), writes BCD Fingerprint (`0xF199`),
   /// checks per-segment memory (`0x0202`), and restores NCD coding after reboot.

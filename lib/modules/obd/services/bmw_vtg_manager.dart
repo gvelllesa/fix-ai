@@ -100,7 +100,7 @@ class ClutchCalibrationResult {
 /// BMW VTG (Verteilergetriebe) / VGSG Transfer Case Controller
 ///
 /// Implements authentic UDS / HSFZ protocol interactions for BMW ATC35L / ATC450 / ATC300
-/// xDrive transfer cases (as reverse engineered from com.rbttuning.xDelete).
+/// xDrive transfer cases (as reverse engineered from com.rbttuning.xDrive AWD Distribution).
 ///
 /// Target ECU: 0x19 (VGSG / VTG)
 /// Partner ECUs: 0x29 (DSC), 0x12 (DME)

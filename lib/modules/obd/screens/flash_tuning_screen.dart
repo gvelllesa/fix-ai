@@ -2350,8 +2350,8 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
 
         const SizedBox(height: 20),
 
-        // 13. ZF 8HP / 6HP TRANSMISSION TUNING (xHP PARITY)
-        _buildXhpTcuTuningSection(),
+        // 13. ZF 8HP / 6HP TRANSMISSION TUNING (TCU Transmission PARITY)
+        _buildTcuTuningSection(),
 
         const SizedBox(height: 28),
 
@@ -2401,10 +2401,10 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
   }
 
   // ==========================================
-  // ZF 8HP / 6HP TRANSMISSION TUNING (xHP PARITY)
+  // ZF 8HP / 6HP TRANSMISSION TUNING (TCU Transmission PARITY)
   // ==========================================
 
-  Widget _buildXhpTcuTuningSection() {
+  Widget _buildTcuTuningSection() {
     final tcu = _options.tcuOptions;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

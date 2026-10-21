@@ -3,7 +3,7 @@ library;
 /// BMW Engine Sensor Definitions & Registry
 /// 
 /// Reverse-engineered from BMW ISTA, Ediabas, Bootmod3 (BM3) Datalogger,
-/// and MHD Flasher for N20/N55/S55/B58 & F/G Chassis.
+/// and Custom ROM Flasher for N20/N55/S55/B58 & F/G Chassis.
 /// Contains verified UDS Data Identifiers (DIDs), target ECUs, byte lengths,
 /// and calibration scaling functions (raw hex -> physical engineering units).
 
@@ -810,7 +810,7 @@ class BmwSensorRegistry {
       category: 'Thermals & Oil',
     ),
 
-    // --- REVERSE-ENGINEERED FROM xHP, xDelete, BimmerLink & MHD ---
+    // --- REVERSE-ENGINEERED FROM TCU Transmission, xDrive AWD Distribution, Custom ROM ---
     BmwSensorDefinition(
       id: 'trans_oil_temp',
       label: 'Transmission Fluid Temp',

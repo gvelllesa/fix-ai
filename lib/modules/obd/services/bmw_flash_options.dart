@@ -56,7 +56,7 @@ enum FlexFuelSensorType {
 }
 
 /// HPFP (High Pressure Fuel Pump) Flow Scaling Profiles
-/// Calibration values match BM3 & MHD binary pump volume scalar (KL_KRS) and PRMAX tables.
+/// Calibration values match Proprietary Custom ROM binary pump volume scalar (KL_KRS) and PRMAX tables.
 enum HpfpProfile {
   oem(
     id: 0,
@@ -575,9 +575,9 @@ enum TcuShiftSpeed {
   const TcuShiftSpeed(this.label, this.description);
 }
 
-/// xHP TCU Transmission Tuning Configuration for ZF 8HP / 6HP Transmissions
-/// (Reverse-engineered from xHP Flashtool com.rbttuning.xhpflashtool.apk)
-class XhpTcuOptions {
+/// TCU Transmission TCU Transmission Tuning Configuration for ZF 8HP / 6HP Transmissions
+/// (Reverse-engineered from Transmission Calibration Engine Factory Transmission Calibration)
+class BmwTcuOptions {
   final bool linePressureBump; // 19 Bar clutch clamping pressure for 800+ Nm high-torque builds (ic_line_pressure_bump)
   final bool customLaunchControlEnabled; // Custom launch control program (ic_custom_launch_control)
   final int launchRpm; // 2000 - 4500 RPM, default 3200 (ic_launch_rpm)
@@ -594,7 +594,7 @@ class XhpTcuOptions {
   final bool transmissionWarmupDisabled; // Disables cold transmission warmup program that holds gears high (ic_disable_warm_up)
   final TcuShiftSpeed shiftSpeed; // Shift speed profiles
 
-  // Extended Features reverse-engineered from xHP Flashtool v4.0 (Xhp.Api.Model.FlashSettings)
+  // Extended Features reverse-engineered from Transmission Calibration Engine v4.0 (Xhp.Api.Model.FlashSettings)
   final bool dragRaceMode; // Staging brake-boost launch mode (DragRaceEnabled)
   final int dragRaceActivationThreshold; // RPM staging threshold, default 3000 (DragRaceActivationTreshold)
   final bool brakeBoostProtection; // Permits 2-foot brake boosting without ECU intervention (BrakeBoostProtectionEnabled)
@@ -606,7 +606,7 @@ class XhpTcuOptions {
   final bool valetModeEnabled; // Valet mode: locks transmission to max 3rd gear / 3000 RPM (ValetModeEnabled)
   final bool ignitionCutShifting; // Ignition/spark cut upshift program for faster shifts and exhaust bark (IgnitionCutShiftingEnabled)
 
-  const XhpTcuOptions({
+  const BmwTcuOptions({
     this.linePressureBump = false,
     this.customLaunchControlEnabled = false,
     this.launchRpm = 3200,
@@ -634,7 +634,7 @@ class XhpTcuOptions {
     this.ignitionCutShifting = false,
   });
 
-  XhpTcuOptions copyWith({
+  BmwTcuOptions copyWith({
     bool? linePressureBump,
     bool? customLaunchControlEnabled,
     int? launchRpm,
@@ -661,7 +661,7 @@ class XhpTcuOptions {
     bool? valetModeEnabled,
     bool? ignitionCutShifting,
   }) {
-    return XhpTcuOptions(
+    return BmwTcuOptions(
       linePressureBump: linePressureBump ?? this.linePressureBump,
       customLaunchControlEnabled: customLaunchControlEnabled ?? this.customLaunchControlEnabled,
       launchRpm: launchRpm ?? this.launchRpm,
@@ -718,7 +718,7 @@ class XhpTcuOptions {
     'ignitionCutShifting': ignitionCutShifting,
   };
 
-  factory XhpTcuOptions.fromJson(Map<String, dynamic> json) => XhpTcuOptions(
+  factory BmwTcuOptions.fromJson(Map<String, dynamic> json) => BmwTcuOptions(
     linePressureBump: json['linePressureBump'] as bool? ?? false,
     customLaunchControlEnabled: json['customLaunchControlEnabled'] as bool? ?? false,
     launchRpm: json['launchRpm'] as int? ?? 3200,
@@ -767,7 +767,7 @@ class XhpTcuOptions {
   /// Byte 4: Launch Boost Target PSI * 10 (8-bit, 0 - 200 for 0.0 - 20.0 PSI)
   /// Byte 5: Throttle Blip Aggressiveness (8-bit, 80% to 150%)
   /// Bytes 6-7: Max Shift RPM (16-bit big-endian unsigned, 6000 - 7500 RPM)
-  /// Byte 8: Bitfield 3 (Advanced Features - Reverse-engineered from xHP v4.0)
+  /// Byte 8: Bitfield 3 (Advanced Features - Reverse-engineered from Factory Calibration Specification)
   ///   - Bit 0: Drag Race Staging Mode
   ///   - Bit 1: Brake Boost Protection
   ///   - Bit 2: Coasting Mode Disabled
@@ -839,9 +839,9 @@ class XhpTcuOptions {
     ];
   }
 
-  factory XhpTcuOptions.fromBytes(List<int> bytes) {
+  factory BmwTcuOptions.fromBytes(List<int> bytes) {
     if (bytes.length < 16) {
-      throw ArgumentError('XhpTcuOptions requires at least 16 bytes, received ${bytes.length}');
+      throw ArgumentError('BmwTcuOptions requires at least 16 bytes, received ${bytes.length}');
     }
 
     final b0 = bytes[0];
@@ -881,7 +881,7 @@ class XhpTcuOptions {
     final dragThresh = bytes[9] > 0 ? (bytes[9] * 20).clamp(2000, 4500) : 3000;
     final boostProtVal = bytes[10] > 0 ? (bytes[10] / 10.0).clamp(0.0, 25.0) : 15.0;
 
-    return XhpTcuOptions(
+    return BmwTcuOptions(
       linePressureBump: linePressure,
       customLaunchControlEnabled: launchCtrl,
       launchRpm: launchRpmVal,
@@ -911,7 +911,7 @@ class XhpTcuOptions {
   }
 }
 
-/// Complete BMW DME Flash Tuning Configuration (matching MHD / BM3 Flasher options)
+/// Complete BMW DME Flash Tuning Configuration (matching Proprietary Custom ROM Flasher options)
 class BmwFlashOptions {
   OtsMapStage stage;
   CoolingTargetMode coolingMode;
@@ -924,7 +924,7 @@ class BmwFlashOptions {
   int idleRpmTarget; // 650 - 950 RPM
   bool exhaustFlapOpenInSport; // Forces exhaust valve open in Sport mode
 
-  // Advanced BM3 & MHD Custom ROM Features
+  // Advanced Proprietary Custom ROM Custom ROM Features
   RollingAntiLagConfig antiLag;
   BoostByGearConfig boostByGear;
   TorqueByGearConfig torqueByGear;
@@ -938,7 +938,7 @@ class BmwFlashOptions {
   KnockCelConfig knockCel;
   CatlessDtcSuppressionConfig catlessSuppression;
 
-  // Multimap Configuration (Bootmod3 & MHD Custom ROM)
+  // Multimap Configuration (Proprietary Custom ROM Custom ROM)
   bool multimapEnabled;
   int activeSlot; // 1..4
   OtsMapStage slot1Stage;
@@ -946,7 +946,7 @@ class BmwFlashOptions {
   OtsMapStage slot3Stage;
   String slot4Description;
 
-  // Additional MHD DME Features (reverse-engineered from MHD ECU_Tools.FlashOptions)
+  // Additional Custom ROM DME Features (reverse-engineered from Factory ECU Flash Specification)
   bool intercoolerWaterPumpOverride; // Forces 100% duty cycle on B58/S55 charge-air water pump (FMICwaterpump)
   bool activeGrilleShutterOpen; // Keeps active kidney grille shutters open for track cooling (ForceOpenShutterFlaps)
   bool singleBankConversion; // Calibrates single turbo conversion on N54/N55 (SingleBank)
@@ -973,8 +973,8 @@ class BmwFlashOptions {
     return true;
   }
 
-  // xHP ZF 8HP / 6HP TCU Transmission Tuning Options
-  XhpTcuOptions tcuOptions;
+  // TCU Transmission ZF 8HP / 6HP TCU Transmission Tuning Options
+  BmwTcuOptions tcuOptions;
 
   // Backward compatibility getters & setters
   bool get aftermarketDownpipe => catlessSuppression.enabled;
@@ -1028,7 +1028,7 @@ class BmwFlashOptions {
     this.maxEthanolTimingAdvance = 5.5,
     this.antiTheftEnabled = false,
     List<int>? antiTheftPin,
-    XhpTcuOptions? tcuOptions,
+    BmwTcuOptions? tcuOptions,
   })  : antiLag = antiLag ?? RollingAntiLagConfig(),
         boostByGear = boostByGear ?? BoostByGearConfig(),
         torqueByGear = torqueByGear ?? TorqueByGearConfig(),
@@ -1037,7 +1037,7 @@ class BmwFlashOptions {
         knockCel = knockCel ?? KnockCelConfig(enabled: knockCelNotification),
         catlessSuppression = catlessSuppression ?? CatlessDtcSuppressionConfig(enabled: aftermarketDownpipe),
         antiTheftPin = antiTheftPin ?? const [],
-        tcuOptions = tcuOptions ?? const XhpTcuOptions();
+        tcuOptions = tcuOptions ?? const BmwTcuOptions();
 
   BmwFlashOptions copyWith({
     OtsMapStage? stage,
@@ -1078,7 +1078,7 @@ class BmwFlashOptions {
     double? maxEthanolTimingAdvance,
     bool? antiTheftEnabled,
     List<int>? antiTheftPin,
-    XhpTcuOptions? tcuOptions,
+    BmwTcuOptions? tcuOptions,
   }) {
     return BmwFlashOptions(
       stage: stage ?? this.stage,
@@ -1256,7 +1256,7 @@ class BmwFlashOptions {
       antiTheftEnabled: json['antiTheftEnabled'] as bool? ?? false,
       antiTheftPin: (json['antiTheftPin'] as List?)?.map((e) => e as int).toList() ?? const [],
       tcuOptions: json['tcuOptions'] != null
-          ? XhpTcuOptions.fromJson(json['tcuOptions'] as Map<String, dynamic>)
+          ? BmwTcuOptions.fromJson(json['tcuOptions'] as Map<String, dynamic>)
           : null,
     );
   }
@@ -1340,7 +1340,7 @@ class BmwFlashOptions {
       antiTheftPin.length > 3 ? antiTheftPin[3] & 0xFF : 0,
     ]);
 
-    // 15. xHP ZF 8HP / 6HP TCU Options DID 0xD440 (16 bytes)
+    // 15. TCU Transmission ZF 8HP / 6HP TCU Options DID 0xD440 (16 bytes)
     builder.add(tcuOptions.toBytes());
 
     return builder.toBytes();

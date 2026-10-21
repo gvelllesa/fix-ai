@@ -91,7 +91,7 @@ class BmwUdsIds {
   static const int didKnockRetard = 0x2015;
 
   // ==========================================
-  // Custom ROM & Patch Identifiers (Bootmod3 / MHD / FixAI)
+  // Custom ROM & Patch Identifiers (Proprietary Custom ROM / FixAI)
   // ==========================================
 
   /// Custom ROM Signature / Bootloader Status
@@ -114,9 +114,9 @@ class BmwUdsIds {
   /// // TODO(verify-on-ecu): verify 0xD430 anti-theft PIN lock status
   static const int didAntiTheftState = 0xD430;
 
-  /// xHP Transmission Calibration Parameters
+  /// TCU Transmission Transmission Calibration Parameters
   /// // TODO(verify-on-ecu): verify 0xD440 TCU calibration write structure on ZF 8HP
-  static const int didXhpTcuConfig = 0xD440;
+  static const int didTcuCalibrationConfig = 0xD440;
 
   // ==========================================
   // Routine Identifiers (RIDs - Service 0x31)

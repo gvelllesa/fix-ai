@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/bmw_vtg_manager.dart';
 import '../services/protocols/enet_hsfz_protocol.dart';
 
-/// BMW xDrive / xDelete Transfer Case Control Screen
+/// BMW xDrive / xDrive AWD Distribution Transfer Case Control Screen
 ///
 /// Provides live VTG multi-disc clutch actuation (RWD, Stock, Sport, Snow, Custom),
 /// real-time telemetry readout (DIDs 0xD030 - 0xD033), and clutch wear calibration (Routine 0xA101).

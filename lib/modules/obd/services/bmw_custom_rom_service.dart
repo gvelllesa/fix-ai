@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'protocols/enet_hsfz_protocol.dart';
 import 'bmw_flash_options.dart';
 
-/// Bootmod3 & MHD Multimap Slot Profiles
+/// Proprietary Custom ROM Multimap Slot Profiles
 enum CustomRomSlot {
   slot1(
     id: 1,
@@ -137,7 +137,7 @@ class FlexFuelData {
   }
 }
 
-/// Service providing Bootmod3 & MHD Custom ROM Advanced Tuning features:
+/// Service providing Proprietary Custom ROM Custom ROM Advanced Tuning features:
 /// 1. Multimap Slot Switching on-the-fly (UDS 0x22 / 0x2E / 0x31)
 /// 2. Cruise Control "RES" button emulation & cluster tachometer slot indication
 /// 3. FlexFuel Real-Time sensor decoding (RAM DID 0xD410 & CAN 0x4F0)
@@ -167,7 +167,7 @@ class BmwCustomRomService {
   static const int didBoostByGear = 0xD430;
   static const int didTorqueByGear = 0xD431;
   static const int didHpfpConfig = 0xD440;
-  static const int didTcuOptions = 0xD440; // EGS (0x18) xHP Transmission Tuning Configuration
+  static const int didTcuOptions = 0xD440; // EGS (0x18) TCU Transmission Transmission Tuning Configuration
   static const int didTmapCalibration = 0xD445;
   static const int didGtsStartupRoar = 0xD450;
   static const int didWastegateRattle = 0xD455;
@@ -333,10 +333,10 @@ class BmwCustomRomService {
     return [0x2E, 0xD4, 0x70, ...config.toBytes()];
   }
 
-  // 10. xHP ZF 8HP / 6HP Transmission Tuning Payloads (EGS 0x18 / DID 0xD440)
+  // 10. TCU Transmission ZF 8HP / 6HP Transmission Tuning Payloads (EGS 0x18 / DID 0xD440)
   static List<int> buildReadTcuOptionsPayload() => const [0x22, 0xD4, 0x40];
 
-  static List<int> buildWriteTcuOptionsPayload(XhpTcuOptions options) {
+  static List<int> buildWriteTcuOptionsPayload(BmwTcuOptions options) {
     return [0x2E, 0xD4, 0x40, ...options.toBytes()];
   }
 
@@ -344,7 +344,7 @@ class BmwCustomRomService {
   // Custom ROM Live Operations & UDS Handlers
   // ==========================================
 
-  /// Check whether DME has Bootmod3 / MHD Custom ROM patched bootloader
+  /// Check whether DME has Proprietary Custom ROM Custom ROM patched bootloader
   Future<bool> isCustomRomInstalled() async {
     final activeProto = protocol ?? EnetHsfzProtocol();
     if (!activeProto.isConnected) {
@@ -876,7 +876,7 @@ class BmwCustomRomService {
   // 10. Master Custom ROM Table Flash Upload
   // ==========================================
 
-  /// Writes all active BM3/MHD Custom ROM options into DME RAM DID 0xD4FE in one atomic UDS transaction
+  /// Writes all active Proprietary Custom ROM Custom ROM options into DME RAM DID 0xD4FE in one atomic UDS transaction
   Future<bool> syncCustomRomMasterTable(BmwFlashOptions options) async {
     final activeProto = protocol ?? EnetHsfzProtocol();
     if (!activeProto.isConnected) {
@@ -896,11 +896,11 @@ class BmwCustomRomService {
   }
 
   // ==========================================
-  // 11. xHP ZF 8HP / 6HP Transmission Tuning (EGS ECU 0x18)
+  // 11. TCU Transmission ZF 8HP / 6HP Transmission Tuning (EGS ECU 0x18)
   // ==========================================
 
-  /// Writes xHP TCU configuration to EGS ECU (0x18) UDS DID 0xD440
-  Future<bool> writeTcuOptions(XhpTcuOptions options) async {
+  /// Writes TCU Transmission TCU configuration to EGS ECU (0x18) UDS DID 0xD440
+  Future<bool> writeTcuOptions(BmwTcuOptions options) async {
     final activeProto = protocol ?? EnetHsfzProtocol();
     if (!activeProto.isConnected) {
       final ok = await activeProto.connect();
@@ -916,8 +916,8 @@ class BmwCustomRomService {
     }
   }
 
-  /// Reads xHP TCU configuration from EGS ECU (0x18) UDS DID 0xD440
-  Future<XhpTcuOptions?> readTcuOptions() async {
+  /// Reads TCU Transmission TCU configuration from EGS ECU (0x18) UDS DID 0xD440
+  Future<BmwTcuOptions?> readTcuOptions() async {
     final activeProto = protocol ?? EnetHsfzProtocol();
     if (!activeProto.isConnected) {
       final ok = await activeProto.connect();
@@ -927,7 +927,7 @@ class BmwCustomRomService {
     try {
       final resp = await activeProto.sendUdsRequest(egsAddress, buildReadTcuOptionsPayload());
       if (resp.length >= 19 && resp[0] == 0x62 && resp[1] == 0xD4 && resp[2] == 0x40) {
-        return XhpTcuOptions.fromBytes(resp.sublist(3, 19));
+        return BmwTcuOptions.fromBytes(resp.sublist(3, 19));
       }
       return null;
     } catch (e) {
@@ -1135,7 +1135,7 @@ class SwflCalibrationRegistry {
       burbleTableOffset: 0x0160, // Shift blip / torque reduction cut
       vmaxLimiterOffset: 0x0180,
       coldStartCatHeatingOffset: 0x0184,
-      customRomMasterTableOffset: 0x0200, // xHP 16-byte TCU configuration block
+      customRomMasterTableOffset: 0x0200, // TCU Transmission 16-byte TCU configuration block
     ),
   };
 
@@ -1187,7 +1187,7 @@ class SwflCalibrationRegistry {
       patched[map.coldStartCatHeatingOffset] = options.coldStartDisabled ? 0x00 : 0x01;
     }
 
-    // 5. Patch full Custom ROM / xHP Master Table (@ customRomMasterTableOffset)
+    // 5. Patch full Custom ROM / TCU Transmission Master Table (@ customRomMasterTableOffset)
     final masterBytes = options.serializeCustomRomBinaryTable();
     if (patched.length >= map.customRomMasterTableOffset + masterBytes.length) {
       patched.setRange(
