@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controllers/auth_controller.dart';
 import 'sign_in_screen.dart';
-import '../../chat/screens/chat_screen.dart';
+import '../../home/screens/dashboard_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -34,10 +34,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       if (success) {
         if (mounted) {
-          // Navigate to ChatScreen safely upon successful authentication
+          // Navigate to DashboardScreen safely upon successful authentication
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (_) => const ChatScreen(
+              builder: (_) => const DashboardScreen(
                 carProfile: {
                   'brand': 'Unknown',
                   'model': 'Vehicle',

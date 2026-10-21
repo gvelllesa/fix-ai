@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/connection_manager.dart';
 import '../services/protocols/enet_hsfz_protocol.dart';
 import '../services/bmw_ecu_scanner.dart';
-import '../widgets/bmw_diagnostic_results_sheet.dart';
+import '../services/bmw_fault_diagnostic_engine.dart';
+import '../widgets/bmw_fault_card.dart';
 
 class EcuScanScreen extends StatefulWidget {
   final EnetHsfzProtocol? activeProtocol;
@@ -61,6 +62,7 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
     }
     _scanner = BmwEcuScanner(protocol: _protocol);
     _topology = BmwEcuScanner.getDefaultFSeriesTopology();
+    BmwFaultDiagnosticEngine.instance.ensureLoaded();
 
     // Proactively start scan
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1114,36 +1116,6 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
     );
   }
 
-  void _sendFaultsToAi() {
-    final allCodes = _scanResult?.getAllFaultCodes() ?? [];
-    if (allCodes.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No fault codes found to analyze!'), backgroundColor: neonGreen),
-      );
-      return;
-    }
-
-    // Offline-first: show official BMW factory explanations (no network needed).
-    // The cloud AI chat remains available as an optional secondary action.
-    final ecus = _topology
-        .where((e) => e.isResponding && e.faultCodes.isNotEmpty)
-        .map((e) => ScannedEcuFaults(e.address, e.name, List<String>.from(e.faultCodes)))
-        .toList();
-
-    BmwDiagnosticResultsSheet.show(
-      context,
-      ecus,
-      onAskAi: () {
-        Navigator.pop(context); // close the sheet
-        if (widget.onSendToChat != null) {
-          widget.onSendToChat!(allCodes);
-          Navigator.pop(context);
-        } else {
-          Navigator.pop(context, allCodes);
-        }
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1497,31 +1469,19 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
                                 if (ecu.faultCodes.isNotEmpty)
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: ecu.faultCodes
-                                        .map((code) => Padding(
-                                              padding: const EdgeInsets.symmetric(vertical: 4),
-                                              child: Row(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  const Padding(
-                                                    padding: EdgeInsets.only(top: 4),
-                                                    child: Icon(Icons.fiber_manual_record, color: alertRed, size: 8),
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Expanded(
-                                                    child: Text(
-                                                      code,
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontSize: 13,
-                                                        fontFamily: 'monospace',
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ))
-                                        .toList(),
+                                    children: ecu.faultCodes.map((code) {
+                                      final lookup = BmwFaultDiagnosticEngine.instance.explain(
+                                        ecu.address,
+                                        code,
+                                        ecuNameFromKis: ecu.name,
+                                      );
+                                      return BmwFaultCard(
+                                        result: lookup,
+                                        raw: code,
+                                        appLabel: ecu.name,
+                                        onClearCode: () => _clearSingleEcu(ecu),
+                                      );
+                                    }).toList(),
                                   )
                                 else if (ecu.isResponding)
                                   const Text(
@@ -1628,22 +1588,16 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
                   Expanded(
                     flex: 2,
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        if (totalFaults > 0) {
-                          _sendFaultsToAi();
-                        } else {
-                          // Allow consulting AI even when 0 faults detected
-                          if (widget.onSendToChat != null) {
-                            widget.onSendToChat!([]);
-                            Navigator.pop(context);
-                          } else {
-                            Navigator.pop(context, []);
-                          }
-                        }
-                      },
-                      icon: const Icon(Icons.psychology, size: 20),
+                      onPressed: _isScanning ? null : _startTopologyScan,
+                      icon: _isScanning
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                            )
+                          : const Icon(Icons.refresh, size: 20),
                       label: Text(
-                        totalFaults > 0 ? 'ANALYZE WITH FIX AI ($totalFaults)' : 'CONSULT FIX AI',
+                        _isScanning ? 'SCANNING...' : 'RE-SCAN ALL MODULES',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       style: ElevatedButton.styleFrom(

@@ -63,11 +63,14 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                   ElevatedButton.icon(
                     onPressed: () {
                       Navigator.pop(context);
-                      // In a real app, route to the start of a new chat session
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const EcuScanScreen()),
+                      );
                     },
-                    icon: const Icon(Icons.add, size: 20),
+                    icon: const Icon(Icons.health_and_safety, size: 20),
                     label: const Text(
-                      'New Diagnosis',
+                      'Full Diagnostic Scan',
                       style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                     ),
                     style: ElevatedButton.styleFrom(
@@ -87,17 +90,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (c) => EcuScanScreen(
-                            onSendToChat: (faults) {
-                              if (widget.onObdConnected != null && faults.isNotEmpty) {
-                                widget.onObdConnected!({
-                                  'code': faults.first.split(' ').first,
-                                  'faults': faults,
-                                  'description': faults.join('\n'),
-                                });
-                              }
-                            },
-                          ),
+                          builder: (c) => const EcuScanScreen(),
                         ),
                       );
                     },
@@ -327,7 +320,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 children: [
                   // HISTORY
-                  _buildSubHeader('HISTORY', Icons.history, textTertiary),
+                  _buildSubHeader('DIAGNOSTIC HISTORY', Icons.history, textTertiary),
                   _buildHistoryItem(context, 'N55 Engine Misfire Analysis', isActive: true, accentColor: accentColor),
                   _buildHistoryItem(context, 'Steering Rack Zero-Point Calibration', isActive: false, accentColor: accentColor),
                   
@@ -671,7 +664,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.delete_forever, color: Colors.red),
-                    title: const Text('Clear Chat History', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                    title: const Text('Clear Diagnostic History', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                     onTap: () {
                       Navigator.pop(modalContext);
                     },

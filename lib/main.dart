@@ -5,7 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/config/env_config.dart';
 import 'data/supabase_client.dart';
-import 'modules/chat/screens/chat_screen.dart';
+import 'modules/home/screens/dashboard_screen.dart';
 import 'modules/auth/screens/sign_in_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
@@ -152,11 +152,13 @@ class AiCarApp extends StatelessWidget {
               Session? session = snapshot.data?.session ?? initialSession;
 
               if (session != null) {
-                return const ChatScreen(
+                return const DashboardScreen(
                   carProfile: {
                     'brand': 'BMW',
-                    'model': 'M3',
-                    'year': '2020',
+                    'model': 'X4 xDrive28i',
+                    'chassis': 'F26',
+                    'engine': 'N20B20A',
+                    'year': '2016',
                     'mileage': '35000',
                     'id': 'test-profile-1',
                   },
