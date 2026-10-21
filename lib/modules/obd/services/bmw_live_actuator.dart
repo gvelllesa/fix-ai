@@ -5,7 +5,7 @@ import 'actuation_guard.dart';
 
 /// BMW DME & KOMBI Real-Time Diagnostic Actuator Engine
 ///
-/// Implements ISTA / ProTool / BM3 Live Diagnostic Actuations:
+/// Implements BMW Factory-Grade Live Diagnostic Actuations:
 /// - Electric Coolant Pump Bleeding Routine (UDS 0x31)
 /// - Multi-speed Radiator Fan Stepped Actuation (UDS 0x2F)
 /// - Fuel Tank Breather / Purge Valve (TEV) (UDS 0x2F)

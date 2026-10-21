@@ -119,7 +119,7 @@ void main() {
       expect(sportAuto.secondaryEcuAddress, equals(0x40));
     });
 
-    test('Includes all 12 new ProTool & BimmerCode key FDL Cheat Codes with exact parameters', () {
+    test('Includes all 12 key FDL Cheat Codes with exact parameters', () {
       final service = BmwCodingService();
       final codes = service.getAvailableCheatCodes();
 

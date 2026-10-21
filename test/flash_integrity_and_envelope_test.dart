@@ -266,7 +266,7 @@ void main() {
       );
 
       final bytes = validOptions.serializeCustomRomBinaryTable();
-      expect(bytes.length, equals(103));
+      expect(bytes.length, equals(117));
       // Byte 82 is antiTheftEnabled, followed by 4 pin digits
       expect(bytes[82], equals(0x01));
       expect(bytes[83], equals(8));
@@ -279,7 +279,7 @@ void main() {
       final options = BmwFlashOptions();
       final tableWithCrc = options.serializeWithCrc();
 
-      expect(tableWithCrc.length, equals(103 + 4));
+      expect(tableWithCrc.length, equals(117 + 4));
       expect(BmwFlashOptions.verifyCrc(tableWithCrc), isTrue);
 
       // Corrupt a single byte in the payload

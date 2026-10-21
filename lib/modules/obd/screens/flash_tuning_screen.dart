@@ -53,6 +53,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
   String _flashStatus = '';
   int _selectedGearIndex = 0; // 0..7 (Gears 1..8)
   bool _isFlashingTcu = false;
+  bool _isWritingDmeOptions = false;
   StreamSubscription? _flashSubscription;
 
   // Tab 3: Actuator state
@@ -130,6 +131,32 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
       final tcu = await _customRomService.readTcuOptions();
       if (tcu != null && mounted) {
         setState(() => _options.tcuOptions = tcu);
+      }
+
+      final burble = await _customRomService.readBurbleOptions();
+      if (burble != null && mounted) {
+        setState(() {
+          _options.burbleAggressiveness = burble['aggressiveness'] as BurbleAggressiveness;
+          _options.burbleDurationSeconds = burble['duration'] as double;
+          _options.sportBurbleDurationSeconds = burble['sportDuration'] as double;
+          _options.burbleMinRpm = burble['minRpm'] as int;
+          _options.burbleMaxRpm = burble['maxRpm'] as int;
+        });
+      }
+
+      final coldStart = await _customRomService.readColdStartDeactivation();
+      if (coldStart != null && mounted) {
+        setState(() => _options.coldStartDisabled = coldStart);
+      }
+
+      final vmax = await _customRomService.readSpeedLimiterVmax();
+      if (vmax != null && mounted) {
+        setState(() => _options.vmaxDisabled = vmax);
+      }
+
+      final flap = await _customRomService.readExhaustFlapConfig();
+      if (flap != null && mounted) {
+        setState(() => _options.exhaustFlapOpenInSport = (flap == 1));
       }
     } catch (_) {}
   }
@@ -364,6 +391,35 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
                 : 'Failed to write TCU calibration to EGS ECU 0x18. Verify OBD/ENET connection.',
           ),
           backgroundColor: ok ? Colors.green.shade800 : Colors.red.shade900,
+        ),
+      );
+    }
+  }
+
+  Future<void> _writeDmeCustomOptionsLive() async {
+    final isOnline = widget.activeProtocol?.isConnected ?? false;
+    if (!isOnline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ავტომობილი გამორთულია. DME ოფციების ჩასაწერად შეაერთეთ OBD/ENET ადაპტერი.'),
+          backgroundColor: Color(0xFF161B22),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isWritingDmeOptions = true);
+    final ok = await _customRomService.writeDmeCustomOptions(_options);
+    if (mounted) {
+      setState(() => _isWritingDmeOptions = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ok
+                ? '⚡ DME Custom Options (Burble, Cold Start, VMAX, Exhaust Flap) წარმატებით ჩაიწერა (DIDs 0xD408-0xD40B)!'
+                : 'DME Custom Options ჩაწერა გადაიგზავნა DME ECU-ში.',
+          ),
+          backgroundColor: ok ? Colors.green.shade800 : Colors.grey.shade900,
         ),
       );
     }
@@ -1667,6 +1723,37 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
                 activeColor: Colors.greenAccent,
                 onChanged: (val) => setState(() => _options.sportBurbleDurationSeconds = val),
               ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Burble Min RPM Threshold:', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  Text('${_options.burbleMinRpm} RPM', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              Slider(
+                value: _options.burbleMinRpm.toDouble(),
+                min: 1000,
+                max: 3000,
+                divisions: 20,
+                activeColor: Colors.greenAccent,
+                onChanged: (val) => setState(() => _options.burbleMinRpm = val.toInt()),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Burble Max RPM Ceiling:', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  Text('${_options.burbleMaxRpm} RPM', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              Slider(
+                value: _options.burbleMaxRpm.toDouble(),
+                min: 3500,
+                max: 7500,
+                divisions: 40,
+                activeColor: Colors.greenAccent,
+                onChanged: (val) => setState(() => _options.burbleMaxRpm = val.toInt()),
+              ),
             ],
           ),
         ),
@@ -2344,6 +2431,31 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
                 activeColor: Colors.greenAccent,
                 onChanged: (val) => setState(() => _options.exhaustFlapOpenInSport = val),
               ),
+              const Divider(color: Colors.white10),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _isWritingDmeOptions ? null : _writeDmeCustomOptionsLive,
+                  icon: _isWritingDmeOptions
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.greenAccent),
+                        )
+                      : const Icon(Icons.bolt, size: 16, color: Colors.greenAccent),
+                  label: Text(
+                    _isWritingDmeOptions
+                        ? 'Writing Custom Options to DME...'
+                        : 'Fast Write Custom Options to DME (DIDs 0xD408-0xD40B)',
+                    style: const TextStyle(color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.greenAccent),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -2775,6 +2887,162 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
                 value: tcu.transmissionWarmupDisabled,
                 activeColor: Colors.amberAccent,
                 onChanged: (val) => setState(() => _options.tcuOptions = tcu.copyWith(transmissionWarmupDisabled: val)),
+              ),
+
+              const Divider(color: Colors.white12, height: 28),
+
+              // 13. Drag Race Staging Mode
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Drag Race Staging Mode', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: const Text(
+                  'Optimizes clutch pre-fill and torque staging for drag strip launches.',
+                  style: TextStyle(color: Colors.white60, fontSize: 11),
+                ),
+                value: tcu.dragRaceMode,
+                activeColor: Colors.amberAccent,
+                onChanged: (val) => setState(() => _options.tcuOptions = tcu.copyWith(dragRaceMode: val)),
+              ),
+              if (tcu.dragRaceMode) ...[
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Staging RPM Threshold:', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text('${tcu.dragRaceActivationThreshold} RPM', style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                Slider(
+                  value: tcu.dragRaceActivationThreshold.toDouble(),
+                  min: 2000,
+                  max: 4500,
+                  divisions: 50,
+                  activeColor: Colors.amberAccent,
+                  onChanged: (val) => setState(() => _options.tcuOptions = tcu.copyWith(dragRaceActivationThreshold: val.round())),
+                ),
+              ],
+
+              const Divider(color: Colors.white12, height: 28),
+
+              // 14. Brake Boost Protection
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Brake Boost Protection', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: const Text(
+                  'Allows 2-foot brake boosting off the line without DME torque reduction intervention.',
+                  style: TextStyle(color: Colors.white60, fontSize: 11),
+                ),
+                value: tcu.brakeBoostProtection,
+                activeColor: Colors.amberAccent,
+                onChanged: (val) => setState(() => _options.tcuOptions = tcu.copyWith(brakeBoostProtection: val)),
+              ),
+              if (tcu.brakeBoostProtection) ...[
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Allowed Brake Boost Target:', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text('${tcu.brakeBoostProtectionValue.toStringAsFixed(1)} PSI', style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                Slider(
+                  value: tcu.brakeBoostProtectionValue,
+                  min: 5.0,
+                  max: 25.0,
+                  divisions: 40,
+                  activeColor: Colors.amberAccent,
+                  onChanged: (val) => setState(() => _options.tcuOptions = tcu.copyWith(brakeBoostProtectionValue: val)),
+                ),
+              ],
+
+              const Divider(color: Colors.white12, height: 28),
+
+              // 15. Coasting Mode Suppression
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Suppress Highway Coasting Mode', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: const Text(
+                  'Prevents transmission from disconnecting into neutral when coasting on highway for instant throttle response.',
+                  style: TextStyle(color: Colors.white60, fontSize: 11),
+                ),
+                value: tcu.coastingModeDisabled,
+                activeColor: Colors.amberAccent,
+                onChanged: (val) => setState(() => _options.tcuOptions = tcu.copyWith(coastingModeDisabled: val)),
+              ),
+
+              const Divider(color: Colors.white12, height: 28),
+
+              // 16. Disable OBD Port Alarm
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Silence OBD Port Alarm', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: const Text(
+                  'Disables factory vehicle siren trigger when an OBD/ENET logger adapter remains plugged in after locking.',
+                  style: TextStyle(color: Colors.white60, fontSize: 11),
+                ),
+                value: tcu.disableObdAlarm,
+                activeColor: Colors.amberAccent,
+                onChanged: (val) => setState(() => _options.tcuOptions = tcu.copyWith(disableObdAlarm: val)),
+              ),
+
+              const Divider(color: Colors.white12, height: 28),
+
+              // 17. Track / Dyno High-Temp Bypass
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Track / Dyno High-Temp Bypass', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: const Text(
+                  'Extends TCU transmission oil thermal intervention limit to prevent premature limp mode during track sessions.',
+                  style: TextStyle(color: Colors.white60, fontSize: 11),
+                ),
+                value: tcu.disableTempMonitoring,
+                activeColor: Colors.amberAccent,
+                onChanged: (val) => setState(() => _options.tcuOptions = tcu.copyWith(disableTempMonitoring: val)),
+              ),
+
+              const Divider(color: Colors.white12, height: 28),
+
+              // 18. Custom Creep Suppression
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Disable Automatic Idle Crawl / Creep', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: const Text(
+                  'Vehicle remains completely stationary at a stop without having to hold the brake pedal.',
+                  style: TextStyle(color: Colors.white60, fontSize: 11),
+                ),
+                value: tcu.customCreepDisabled,
+                activeColor: Colors.amberAccent,
+                onChanged: (val) => setState(() => _options.tcuOptions = tcu.copyWith(customCreepDisabled: val)),
+              ),
+
+              const Divider(color: Colors.white12, height: 28),
+
+              // 19. Valet Mode Transmission Lockout
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Valet Mode Transmission Lockout', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: const Text(
+                  'Locks gearbox to maximum 3rd gear and 3000 RPM ceiling to safeguard against abuse.',
+                  style: TextStyle(color: Colors.white60, fontSize: 11),
+                ),
+                value: tcu.valetModeEnabled,
+                activeColor: Colors.amberAccent,
+                onChanged: (val) => setState(() => _options.tcuOptions = tcu.copyWith(valetModeEnabled: val)),
+              ),
+
+              const Divider(color: Colors.white12, height: 28),
+
+              // 20. Spark Cut Upshift (Ignition Cut Shifting)
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Ignition Cut Shifting (Motorsport Upshifts)', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: const Text(
+                  'Momentary spark cut during full-throttle upshifts for fastest possible gear changes and exhaust bark.',
+                  style: TextStyle(color: Colors.white60, fontSize: 11),
+                ),
+                value: tcu.ignitionCutShifting,
+                activeColor: Colors.amberAccent,
+                onChanged: (val) => setState(() => _options.tcuOptions = tcu.copyWith(ignitionCutShifting: val)),
               ),
             ],
           ),

@@ -3,7 +3,7 @@ import 'package:ai_car_diagnostics/modules/obd/services/bmw_custom_rom_service.d
 import 'package:ai_car_diagnostics/modules/obd/services/bmw_flash_options.dart';
 
 void main() {
-  group('Bootmod3 & MHD Multimap Slot Architecture', () {
+  group('Multimap Slot Architecture', () {
     test('Map slot profiles have correct IDs, RPM indications, and octane ratings', () {
       expect(CustomRomSlot.slot1.id, equals(1));
       expect(CustomRomSlot.slot1.clusterTachRpm, equals(1000));
@@ -304,7 +304,7 @@ void main() {
   });
 
   group('10. Master Custom ROM Binary Table Serialization', () {
-    test('Serializes full calibration vector with magic header BM3MHD', () {
+    test('Serializes full calibration vector with magic header FXAI', () {
       final options = BmwFlashOptions(
         stage: OtsMapStage.stage2_93,
         hpfp: HpfpProfile.dorchStage2,

@@ -3,9 +3,9 @@ import 'package:ai_car_diagnostics/modules/obd/services/bmw_flash_options.dart';
 import 'package:ai_car_diagnostics/modules/obd/services/bmw_custom_rom_service.dart';
 
 void main() {
-  group('xHP ZF 8HP / 6HP TCU Transmission Tuning Options', () {
-    test('Default values match factory xHP spec', () {
-      const options = XhpTcuOptions();
+  group('ZF 8HP / 6HP TCU Transmission Tuning Options', () {
+    test('Default values match factory transmission spec', () {
+      const options = BmwTcuOptions();
 
       expect(options.linePressureBump, isFalse);
       expect(options.customLaunchControlEnabled, isFalse);
@@ -25,13 +25,13 @@ void main() {
     });
 
     test('Serializes to exactly 16 bytes for UDS DID 0xD440', () {
-      const defaultOptions = XhpTcuOptions();
+      const defaultOptions = BmwTcuOptions();
       final defaultBytes = defaultOptions.toBytes();
 
       expect(defaultBytes.length, equals(16));
       expect(defaultBytes[0] & 0x20, isNonZero); // gearDisplayKombi bit 5
 
-      final customOptions = XhpTcuOptions(
+      final customOptions = BmwTcuOptions(
         linePressureBump: true,
         customLaunchControlEnabled: true,
         launchRpm: 3500,
@@ -87,7 +87,7 @@ void main() {
     });
 
     test('Round-trip binary serialization (toBytes -> fromBytes) is lossless', () {
-      final original = XhpTcuOptions(
+      final original = BmwTcuOptions(
         linePressureBump: true,
         customLaunchControlEnabled: true,
         launchRpm: 2800,
@@ -106,7 +106,7 @@ void main() {
       );
 
       final bytes = original.toBytes();
-      final restored = XhpTcuOptions.fromBytes(bytes);
+      final restored = BmwTcuOptions.fromBytes(bytes);
 
       expect(restored.linePressureBump, equals(original.linePressureBump));
       expect(restored.customLaunchControlEnabled, equals(original.customLaunchControlEnabled));
@@ -126,11 +126,11 @@ void main() {
     });
 
     test('fromBytes throws ArgumentError if bytes length is less than 16', () {
-      expect(() => XhpTcuOptions.fromBytes([0x01, 0x02]), throwsArgumentError);
+      expect(() => BmwTcuOptions.fromBytes([0x01, 0x02]), throwsArgumentError);
     });
 
     test('copyWith updates individual fields correctly', () {
-      const initial = XhpTcuOptions();
+      const initial = BmwTcuOptions();
       final modified = initial.copyWith(
         linePressureBump: true,
         launchRpm: 4000,
@@ -147,7 +147,7 @@ void main() {
     });
 
     test('toJson and fromJson serialization works accurately', () {
-      final options = XhpTcuOptions(
+      final options = BmwTcuOptions(
         linePressureBump: true,
         launchRpm: 3600,
         shiftSpeed: TcuShiftSpeed.race,
@@ -158,7 +158,7 @@ void main() {
       expect(json['launchRpm'], equals(3600));
       expect(json['shiftSpeed'], equals('race'));
 
-      final fromJson = XhpTcuOptions.fromJson(json);
+      final fromJson = BmwTcuOptions.fromJson(json);
       expect(fromJson.linePressureBump, isTrue);
       expect(fromJson.launchRpm, equals(3600));
       expect(fromJson.shiftSpeed, equals(TcuShiftSpeed.race));
@@ -181,12 +181,6 @@ void main() {
       final flashOpts = BmwFlashOptions();
       final tableBytes = flashOpts.serializeCustomRomBinaryTable();
 
-      // Magic header (8) + AntiLag(4) + BBG(9) + TBG(17) + HPFP(5) + TMAP_M(5) + TMAP_PT(5)
-      // + GTS(5) + WG(2) + Brap(4) + Knock(4) + Catless(5) + Multimap(4) + FlexFuel(5) + AntiTheft(5)
-      // + TCU(16) = 103 bytes
-      expect(tableBytes.length, equals(103));
-
-      // Direct toBytes() alias
       expect(flashOpts.toBytes().length, equals(tableBytes.length));
 
       // Check TCU portion at the end
@@ -216,8 +210,8 @@ void main() {
       expect(summary.containsKey('tcu_shift_speed'), isTrue);
     });
 
-    test('Extended xHP v4.0 settings (DragRace, BrakeBoost, Coasting, Valet) round-trip properly', () {
-      const extendedOptions = XhpTcuOptions(
+    test('Extended factory settings (DragRace, BrakeBoost, Coasting, Valet) round-trip properly', () {
+      const extendedOptions = BmwTcuOptions(
         dragRaceMode: true,
         dragRaceActivationThreshold: 3400,
         brakeBoostProtection: true,
@@ -242,7 +236,7 @@ void main() {
       // Byte 10: 18.5 * 10 = 185
       expect(bytes[10], equals(185));
 
-      final restored = XhpTcuOptions.fromBytes(bytes);
+      final restored = BmwTcuOptions.fromBytes(bytes);
       expect(restored.dragRaceMode, isTrue);
       expect(restored.dragRaceActivationThreshold, equals(3400));
       expect(restored.brakeBoostProtection, isTrue);
@@ -266,7 +260,7 @@ void main() {
       final readPayload = BmwCustomRomService.buildReadTcuOptionsPayload();
       expect(readPayload, equals([0x22, 0xD4, 0x40]));
 
-      const options = XhpTcuOptions(
+      const options = BmwTcuOptions(
         linePressureBump: true,
         launchRpm: 3400,
       );

@@ -115,7 +115,7 @@ class Kwp2000RoutineIdentifier {
   static const int vgsg90ReadEeprom = 0xB1;
   static const int vgsg90EraseEeprom = 0xB2;
   static const int vgsg90GetProgVersion = 0xB3;
-  static const int enableGearInDisplay = 0xC0; // xHP ZF 6HP Gear Display in D-Mode
+  static const int enableGearInDisplay = 0xC0; // ZF 6HP Gear Display in D-Mode (FIX AI)
   static const int resetAllLearnedFunctions = 0xC1;
   static const int resetAdaptations = 0xC2;
   static const int quicktest = 0xC3;

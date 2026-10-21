@@ -45,7 +45,7 @@ enum OtsMapStage {
 
 /// Supported FlexFuel Sensor integration types
 enum FlexFuelSensorType {
-  canBus0x4F0('CAN Bus Broadcast (0x4F0)', 'Zeitronix ECA-2 / BM3 / Motiv Reflex CAN'),
+  canBus0x4F0('CAN Bus Broadcast (0x4F0)', 'Zeitronix ECA-2 / Motiv Reflex / CAN Broadcast'),
   dmeRamDid('DME Internal RAM DID (0xD410)', 'Direct DME RAM analog sensor lookup'),
   analogPin('Analog 0-5V Input', 'Continental flex sensor wired to DME analog pin');
 
@@ -594,7 +594,7 @@ class BmwTcuOptions {
   final bool transmissionWarmupDisabled; // Disables cold transmission warmup program that holds gears high (ic_disable_warm_up)
   final TcuShiftSpeed shiftSpeed; // Shift speed profiles
 
-  // Extended Features reverse-engineered from Transmission Calibration Engine v4.0 (Xhp.Api.Model.FlashSettings)
+  // Extended Features reverse-engineered from Transmission Calibration Engine v4.0 (Factory FlashSettings)
   final bool dragRaceMode; // Staging brake-boost launch mode (DragRaceEnabled)
   final int dragRaceActivationThreshold; // RPM staging threshold, default 3000 (DragRaceActivationTreshold)
   final bool brakeBoostProtection; // Permits 2-foot brake boosting without ECU intervention (BrakeBoostProtectionEnabled)
@@ -918,6 +918,8 @@ class BmwFlashOptions {
   BurbleAggressiveness burbleAggressiveness;
   double burbleDurationSeconds; // 0.0 to 2.5s
   double sportBurbleDurationSeconds; // 0.0 to 2.5s
+  int burbleMinRpm; // Minimum RPM for overrun burble (1000 - 3000 RPM, default 1500)
+  int burbleMaxRpm; // Maximum RPM for overrun burble (3500 - 7500 RPM, default 5500)
   bool coldStartDisabled; // Deactivates noisy cold start cat heating
   bool vmaxDisabled; // Removes 250 km/h limiter (set to 330 km/h)
   bool linearThrottle; // 1:1 pedal to torque mapping
@@ -992,6 +994,8 @@ class BmwFlashOptions {
     this.burbleAggressiveness = BurbleAggressiveness.medium,
     this.burbleDurationSeconds = 1.0,
     this.sportBurbleDurationSeconds = 1.5,
+    this.burbleMinRpm = 1500,
+    this.burbleMaxRpm = 5500,
     bool aftermarketDownpipe = false,
     this.coldStartDisabled = true,
     this.vmaxDisabled = true,
@@ -1045,6 +1049,8 @@ class BmwFlashOptions {
     BurbleAggressiveness? burbleAggressiveness,
     double? burbleDurationSeconds,
     double? sportBurbleDurationSeconds,
+    int? burbleMinRpm,
+    int? burbleMaxRpm,
     bool? coldStartDisabled,
     bool? vmaxDisabled,
     bool? linearThrottle,
@@ -1086,6 +1092,8 @@ class BmwFlashOptions {
       burbleAggressiveness: burbleAggressiveness ?? this.burbleAggressiveness,
       burbleDurationSeconds: burbleDurationSeconds ?? this.burbleDurationSeconds,
       sportBurbleDurationSeconds: sportBurbleDurationSeconds ?? this.sportBurbleDurationSeconds,
+      burbleMinRpm: burbleMinRpm ?? this.burbleMinRpm,
+      burbleMaxRpm: burbleMaxRpm ?? this.burbleMaxRpm,
       coldStartDisabled: coldStartDisabled ?? this.coldStartDisabled,
       vmaxDisabled: vmaxDisabled ?? this.vmaxDisabled,
       linearThrottle: linearThrottle ?? this.linearThrottle,
@@ -1129,6 +1137,8 @@ class BmwFlashOptions {
     'burbleAggressiveness': burbleAggressiveness.name,
     'burbleDurationSeconds': burbleDurationSeconds,
     'sportBurbleDurationSeconds': sportBurbleDurationSeconds,
+    'burbleMinRpm': burbleMinRpm,
+    'burbleMaxRpm': burbleMaxRpm,
     'aftermarketDownpipe': aftermarketDownpipe,
     'coldStartDisabled': coldStartDisabled,
     'vmaxDisabled': vmaxDisabled,
@@ -1184,6 +1194,8 @@ class BmwFlashOptions {
       ),
       burbleDurationSeconds: (json['burbleDurationSeconds'] as num?)?.toDouble() ?? 1.0,
       sportBurbleDurationSeconds: (json['sportBurbleDurationSeconds'] as num?)?.toDouble() ?? 1.5,
+      burbleMinRpm: json['burbleMinRpm'] as int? ?? 1500,
+      burbleMaxRpm: json['burbleMaxRpm'] as int? ?? 5500,
       aftermarketDownpipe: json['aftermarketDownpipe'] as bool? ?? false,
       coldStartDisabled: json['coldStartDisabled'] as bool? ?? true,
       vmaxDisabled: json['vmaxDisabled'] as bool? ?? true,
@@ -1340,6 +1352,26 @@ class BmwFlashOptions {
       antiTheftPin.length > 3 ? antiTheftPin[3] & 0xFF : 0,
     ]);
 
+    // 14b. Engine Custom Options DID 0xD408..0xD40B (14 bytes)
+    final clampedMinRpm = burbleMinRpm.clamp(1000, 3000);
+    final clampedMaxRpm = burbleMaxRpm.clamp(3500, 7500);
+    builder.add([
+      burbleAggressiveness.level & 0xFF,
+      (burbleDurationSeconds.clamp(0.0, 5.0) * 10).toInt() & 0xFF,
+      (sportBurbleDurationSeconds.clamp(0.0, 5.0) * 10).toInt() & 0xFF,
+      (clampedMinRpm >> 8) & 0xFF,
+      clampedMinRpm & 0xFF,
+      (clampedMaxRpm >> 8) & 0xFF,
+      clampedMaxRpm & 0xFF,
+      coldStartDisabled ? 0x01 : 0x00,
+      vmaxDisabled ? 0x01 : 0x00,
+      exhaustFlapOpenInSport ? 0x01 : 0x00,
+      linearThrottle ? 0x01 : 0x00,
+      (idleRpmTarget >> 8) & 0xFF,
+      idleRpmTarget & 0xFF,
+      coolingMode.targetTempCelsius & 0xFF,
+    ]);
+
     // 15. TCU Transmission ZF 8HP / 6HP TCU Options DID 0xD440 (16 bytes)
     builder.add(tcuOptions.toBytes());
 
@@ -1378,6 +1410,8 @@ class BmwFlashOptions {
       'thermostat_target_celsius': coolingMode.targetTempCelsius,
       'burble_overrun_delay_ms': (burbleDurationSeconds * 1000).toInt(),
       'burble_sport_delay_ms': (sportBurbleDurationSeconds * 1000).toInt(),
+      'burble_min_rpm': burbleMinRpm,
+      'burble_max_rpm': burbleMaxRpm,
       'burble_timing_retard_deg': burbleAggressiveness.level * -6.0,
       'cat_heating_disabled': coldStartDisabled,
       'speed_limiter_kmh': vmaxDisabled ? 330 : 250,

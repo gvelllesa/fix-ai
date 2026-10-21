@@ -162,6 +162,10 @@ class BmwCustomRomService {
   static const int didMultimapSlot = 0xD400;
   static const int didTachIndication = 0xD402;
   static const int didAntiTheftStatus = 0xD405;
+  static const int didBurbleConfig = 0xD408; // Burble (Aggressiveness, Duration, Sport Duration, Min/Max RPM)
+  static const int didColdStart = 0xD409;    // Cold start cat heating deactivation flag
+  static const int didVmaxLimiter = 0xD40A;  // Top speed governor removal (250 km/h -> 330 km/h)
+  static const int didExhaustFlap = 0xD40B;  // Exhaust flap mode (OEM / Sport / Always Open)
   static const int didFlexFuel = 0xD410;
   static const int didRollingAntiLag = 0xD420;
   static const int didBoostByGear = 0xD430;
@@ -221,6 +225,52 @@ class BmwCustomRomService {
   }
 
   // 1. Rolling Anti-Lag Payloads
+  // 0. DME Engine Custom Options Payloads (Burble, Cold Start, VMAX, Exhaust Flap)
+  static List<int> buildReadBurblePayload() => const [0x22, 0xD4, 0x08];
+
+  static List<int> buildWriteBurblePayload({
+    required BurbleAggressiveness aggressiveness,
+    required double duration,
+    required double sportDuration,
+    int minRpm = 1500,
+    int maxRpm = 5500,
+  }) {
+    final durByte = (duration.clamp(0.0, 5.0) * 10).toInt();
+    final sportDurByte = (sportDuration.clamp(0.0, 5.0) * 10).toInt();
+    final clampedMinRpm = minRpm.clamp(1000, 3000);
+    final clampedMaxRpm = maxRpm.clamp(3500, 7500);
+    return [
+      0x2E,
+      0xD4,
+      0x08,
+      aggressiveness.level & 0xFF,
+      durByte & 0xFF,
+      sportDurByte & 0xFF,
+      (clampedMinRpm >> 8) & 0xFF,
+      clampedMinRpm & 0xFF,
+      (clampedMaxRpm >> 8) & 0xFF,
+      clampedMaxRpm & 0xFF,
+    ];
+  }
+
+  static List<int> buildReadColdStartPayload() => const [0x22, 0xD4, 0x09];
+
+  static List<int> buildWriteColdStartPayload(bool disabled) => [
+    0x2E, 0xD4, 0x09, disabled ? 0x01 : 0x00,
+  ];
+
+  static List<int> buildReadVmaxLimiterPayload() => const [0x22, 0xD4, 0x0A];
+
+  static List<int> buildWriteVmaxLimiterPayload(bool disabled) => [
+    0x2E, 0xD4, 0x0A, disabled ? 0x01 : 0x00,
+  ];
+
+  static List<int> buildReadExhaustFlapPayload() => const [0x22, 0xD4, 0x0B];
+
+  static List<int> buildWriteExhaustFlapPayload(int mode) => [
+    0x2E, 0xD4, 0x0B, mode & 0xFF,
+  ];
+
   static List<int> buildReadAntiLagPayload() => const [0x22, 0xD4, 0x20];
 
   static List<int> buildWriteAntiLagPayload(RollingAntiLagConfig config) {
@@ -934,6 +984,201 @@ class BmwCustomRomService {
       debugPrint('[BmwCustomRomService] Error reading TCU options from EGS 0x18: $e');
       return null;
     }
+  }
+
+  // ==========================================
+  // 12. DME Engine Custom Options (DME ECU 0x12 / DIDs 0xD408 - 0xD40B)
+  // ==========================================
+
+  /// Writes Burble configuration to DME RAM DID 0xD408
+  Future<bool> writeBurbleOptions({
+    required BurbleAggressiveness aggressiveness,
+    required double duration,
+    required double sportDuration,
+    int minRpm = 1500,
+    int maxRpm = 5500,
+  }) async {
+    final activeProto = protocol ?? EnetHsfzProtocol();
+    if (!activeProto.isConnected) {
+      final ok = await activeProto.connect();
+      if (!ok) return false;
+    }
+
+    try {
+      final payload = buildWriteBurblePayload(
+        aggressiveness: aggressiveness,
+        duration: duration,
+        sportDuration: sportDuration,
+        minRpm: minRpm,
+        maxRpm: maxRpm,
+      );
+      final resp = await activeProto.sendUdsRequest(dmeAddress, payload);
+      return resp.isNotEmpty && resp[0] == 0x6E;
+    } catch (e) {
+      debugPrint('[BmwCustomRomService] Error writing Burble options: $e');
+      return false;
+    }
+  }
+
+  /// Reads Burble configuration from DME RAM DID 0xD408
+  Future<Map<String, dynamic>?> readBurbleOptions() async {
+    final activeProto = protocol ?? EnetHsfzProtocol();
+    if (!activeProto.isConnected) {
+      final ok = await activeProto.connect();
+      if (!ok) return null;
+    }
+
+    try {
+      final resp = await activeProto.sendUdsRequest(dmeAddress, buildReadBurblePayload());
+      if (resp.length >= 10 && resp[0] == 0x62 && resp[1] == 0xD4 && resp[2] == 0x08) {
+        final aggroLvl = resp[3];
+        final dur = resp[4] / 10.0;
+        final sportDur = resp[5] / 10.0;
+        final minRpm = (resp[6] << 8) | resp[7];
+        final maxRpm = (resp[8] << 8) | resp[9];
+        final aggro = BurbleAggressiveness.values.firstWhere(
+          (a) => a.level == aggroLvl,
+          orElse: () => BurbleAggressiveness.medium,
+        );
+        return {
+          'aggressiveness': aggro,
+          'duration': dur,
+          'sportDuration': sportDur,
+          'minRpm': minRpm,
+          'maxRpm': maxRpm,
+        };
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[BmwCustomRomService] Error reading Burble options: $e');
+      return null;
+    }
+  }
+
+  /// Writes Cold Start Cat Heating Deactivation to DME RAM DID 0xD409
+  Future<bool> writeColdStartDeactivation(bool disabled) async {
+    final activeProto = protocol ?? EnetHsfzProtocol();
+    if (!activeProto.isConnected) {
+      final ok = await activeProto.connect();
+      if (!ok) return false;
+    }
+
+    try {
+      final resp = await activeProto.sendUdsRequest(dmeAddress, buildWriteColdStartPayload(disabled));
+      return resp.isNotEmpty && resp[0] == 0x6E;
+    } catch (e) {
+      debugPrint('[BmwCustomRomService] Error writing Cold Start option: $e');
+      return false;
+    }
+  }
+
+  /// Reads Cold Start Cat Heating Deactivation status from DME RAM DID 0xD409
+  Future<bool?> readColdStartDeactivation() async {
+    final activeProto = protocol ?? EnetHsfzProtocol();
+    if (!activeProto.isConnected) {
+      final ok = await activeProto.connect();
+      if (!ok) return null;
+    }
+
+    try {
+      final resp = await activeProto.sendUdsRequest(dmeAddress, buildReadColdStartPayload());
+      if (resp.length >= 4 && resp[0] == 0x62 && resp[1] == 0xD4 && resp[2] == 0x09) {
+        return resp[3] == 0x01;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[BmwCustomRomService] Error reading Cold Start status: $e');
+      return null;
+    }
+  }
+
+  /// Writes Top Speed Limiter (VMAX) Removal to DME RAM DID 0xD40A
+  Future<bool> writeSpeedLimiterVmax(bool disabled) async {
+    final activeProto = protocol ?? EnetHsfzProtocol();
+    if (!activeProto.isConnected) {
+      final ok = await activeProto.connect();
+      if (!ok) return false;
+    }
+
+    try {
+      final resp = await activeProto.sendUdsRequest(dmeAddress, buildWriteVmaxLimiterPayload(disabled));
+      return resp.isNotEmpty && resp[0] == 0x6E;
+    } catch (e) {
+      debugPrint('[BmwCustomRomService] Error writing VMAX option: $e');
+      return false;
+    }
+  }
+
+  /// Reads Top Speed Limiter (VMAX) status from DME RAM DID 0xD40A
+  Future<bool?> readSpeedLimiterVmax() async {
+    final activeProto = protocol ?? EnetHsfzProtocol();
+    if (!activeProto.isConnected) {
+      final ok = await activeProto.connect();
+      if (!ok) return null;
+    }
+
+    try {
+      final resp = await activeProto.sendUdsRequest(dmeAddress, buildReadVmaxLimiterPayload());
+      if (resp.length >= 4 && resp[0] == 0x62 && resp[1] == 0xD4 && resp[2] == 0x0A) {
+        return resp[3] == 0x01;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[BmwCustomRomService] Error reading VMAX status: $e');
+      return null;
+    }
+  }
+
+  /// Writes Exhaust Flap Mode to DME RAM DID 0xD40B (0: OEM, 1: Open in Sport, 2: Always Open)
+  Future<bool> writeExhaustFlapConfig(int mode) async {
+    final activeProto = protocol ?? EnetHsfzProtocol();
+    if (!activeProto.isConnected) {
+      final ok = await activeProto.connect();
+      if (!ok) return false;
+    }
+
+    try {
+      final resp = await activeProto.sendUdsRequest(dmeAddress, buildWriteExhaustFlapPayload(mode));
+      return resp.isNotEmpty && resp[0] == 0x6E;
+    } catch (e) {
+      debugPrint('[BmwCustomRomService] Error writing Exhaust Flap config: $e');
+      return false;
+    }
+  }
+
+  /// Reads Exhaust Flap Mode from DME RAM DID 0xD40B
+  Future<int?> readExhaustFlapConfig() async {
+    final activeProto = protocol ?? EnetHsfzProtocol();
+    if (!activeProto.isConnected) {
+      final ok = await activeProto.connect();
+      if (!ok) return null;
+    }
+
+    try {
+      final resp = await activeProto.sendUdsRequest(dmeAddress, buildReadExhaustFlapPayload());
+      if (resp.length >= 4 && resp[0] == 0x62 && resp[1] == 0xD4 && resp[2] == 0x0B) {
+        return resp[3];
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[BmwCustomRomService] Error reading Exhaust Flap config: $e');
+      return null;
+    }
+  }
+
+  /// Writes all Engine DME Custom Options (Burble, Cold Start, VMAX, Exhaust Flap) in sequence
+  Future<bool> writeDmeCustomOptions(BmwFlashOptions options) async {
+    final okBurble = await writeBurbleOptions(
+      aggressiveness: options.burbleAggressiveness,
+      duration: options.burbleDurationSeconds,
+      sportDuration: options.sportBurbleDurationSeconds,
+      minRpm: options.burbleMinRpm,
+      maxRpm: options.burbleMaxRpm,
+    );
+    final okCold = await writeColdStartDeactivation(options.coldStartDisabled);
+    final okVmax = await writeSpeedLimiterVmax(options.vmaxDisabled);
+    final okFlap = await writeExhaustFlapConfig(options.exhaustFlapOpenInSport ? 1 : 0);
+    return okBurble && okCold && okVmax && okFlap;
   }
 }
 

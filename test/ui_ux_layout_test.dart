@@ -9,6 +9,7 @@ import 'package:ai_car_diagnostics/modules/obd/screens/flash_tuning_screen.dart'
 import 'package:ai_car_diagnostics/modules/obd/screens/live_telemetry_screen.dart';
 import 'package:ai_car_diagnostics/modules/obd/screens/xdrive_control_screen.dart';
 import 'package:ai_car_diagnostics/modules/obd/services/protocols/enet_hsfz_protocol.dart';
+import 'package:ai_car_diagnostics/modules/obd/services/bmw_fault_diagnostic_engine.dart';
 
 /// Test in-memory protocol harness for UI widget rendering
 class UiTestProtocol extends EnetHsfzProtocol {
@@ -59,6 +60,11 @@ Widget buildTestableScreen(Widget screen, {required Size size, double textScale 
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(() {
+    BmwFaultDiagnosticEngine.instance.loadFromJsonString(
+      '{"metadata": {}, "texts": [], "families": {}, "address_index": {}}',
+    );
+  });
   FlutterError.onError = (details) {
     FlutterError.dumpErrorToConsole(details, forceReport: true);
   };
