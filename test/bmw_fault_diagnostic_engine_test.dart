@@ -67,6 +67,13 @@ void main() {
       expect(r.factoryTexts.single.family, 'icm');
       expect(r.factoryTexts.single.text, contains('Höhenstandssensoren'));
     });
+
+    test('0x6D is SMFA, 802A1E = Keine Sitzverstellung wegen Motorstartbedingung', () {
+      final r = engine.explain(0x6D, 'B002A (802A1E) [Confirmed]');
+      expect(r.isKnown, isTrue);
+      expect(r.explanationKa, contains('სავარძლის'));
+      expect(r.repairStepsKa.isNotEmpty, isTrue);
+    });
   });
 
   group('Zero-hallucination behaviour', () {

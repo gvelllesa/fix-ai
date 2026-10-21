@@ -280,7 +280,7 @@ class BmwEcuScanner {
       EcuInfo(address: 0x30, name: 'EPS', description: 'Electronic Power Steering'),
       EcuInfo(address: 0x60, name: 'KOMBI', description: 'Instrument Cluster Display'),
       EcuInfo(address: 0x63, name: 'HU_NBT', description: 'Headunit NBT/EVO Navigation & Infotainment'),
-      EcuInfo(address: 0x6D, name: 'ECU_6D', description: 'Unverified module at 0x6D (BMW KIS F025 lists FA here; previously mislabelled IHKA)'),
+      EcuInfo(address: 0x6D, name: 'SMFA', description: 'Seat Module Driver / Sitzmodul Fahrer (SM [6d])'),
       EcuInfo(address: 0x01, name: 'ACSM', description: 'Advanced Crash Safety Module / Airbag'),
       EcuInfo(address: 0x56, name: 'FZD', description: 'Function Zone Dome / Roof Function Center'),
       EcuInfo(address: 0x78, name: 'IHKA', description: 'Integrated Automatic Heating & Climate Control (BMW KIS: F025 0x78)'),
@@ -977,18 +977,32 @@ class BmwEcuScanner {
       final dids = [0xF187, 0xF188, 0xF189, 0xF18B, 0xF190];
       final rawResults = <int, Uint8List>{};
 
-      for (final did in dids) {
-        final msb = (did >> 8) & 0xFF;
-        final lsb = did & 0xFF;
-        final resp = await protocol.sendUdsAndAwait(
-          ecuAddress,
-          [0x22, msb, lsb],
-          timeout: const Duration(milliseconds: 800),
-        );
+      Future<void> queryDids() async {
+        for (final did in dids) {
+          final msb = (did >> 8) & 0xFF;
+          final lsb = did & 0xFF;
+          final resp = await protocol.sendUdsAndAwait(
+            ecuAddress,
+            [0x22, msb, lsb],
+            timeout: const Duration(milliseconds: 1500),
+          );
 
-        if (resp != null && resp.length >= 3 && resp[0] == 0x62 && resp[1] == msb && resp[2] == lsb) {
-          rawResults[did] = resp.sublist(3);
+          if (resp != null && resp.length >= 3 && resp[0] == 0x62 && resp[1] == msb && resp[2] == lsb) {
+            rawResults[did] = resp.sublist(3);
+          }
         }
+      }
+
+      await queryDids();
+
+      // If initial read yielded nothing, try opening extended diagnostic session (0x10 0x03)
+      if (rawResults.isEmpty) {
+        await protocol.sendUdsAndAwait(
+          ecuAddress,
+          [0x10, 0x03],
+          timeout: const Duration(milliseconds: 1000),
+        );
+        await queryDids();
       }
 
       if (rawResults.isEmpty) {

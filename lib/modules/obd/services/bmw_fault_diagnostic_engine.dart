@@ -159,7 +159,19 @@ class BmwFaultDiagnosticEngine {
     _metadata = (data['metadata'] as Map<String, dynamic>?) ?? const {};
     _texts = (data['texts'] as List<dynamic>).cast<String>();
     _families = data['families'] as Map<String, dynamic>;
-    _addressIndex = data['address_index'] as Map<String, dynamic>;
+    _addressIndex = Map<String, dynamic>.from(data['address_index'] as Map<String, dynamic>);
+    
+    // Ensure SMFA (0x6d / 0x58) maps to driver seat families
+    final addr6d = (_addressIndex['0x6d'] as List<dynamic>?)?.toList() ?? <dynamic>[];
+    if (!addr6d.contains('_other:fas_12')) addr6d.add('_other:fas_12');
+    if (!addr6d.contains('_other:fas_g11')) addr6d.add('_other:fas_g11');
+    _addressIndex['0x6d'] = addr6d;
+
+    final addr58 = (_addressIndex['0x58'] as List<dynamic>?)?.toList() ?? <dynamic>[];
+    if (!addr58.contains('_other:fas_12')) addr58.add('_other:fas_12');
+    if (!addr58.contains('_other:fas_g11')) addr58.add('_other:fas_g11');
+    _addressIndex['0x58'] = addr58;
+
     _loaded = true;
   }
 
@@ -311,6 +323,36 @@ class BmwFaultDiagnosticEngine {
         '3. შეასრულეთ ენერგოდიაგნოსტიკის ქარხნული ტესტი (Closed-circuit current monitoring) მიძინების ციკლის შესამოწმებლად.',
       ],
       severity: 'MEDIUM',
+      safeToDrive: true,
+    ),
+
+    // 0x6D: SMFA - No seat adjustment due to engine start condition
+    '0x6D:802A1E': BmwGuidedFaultDetail(
+      titleEn: 'Seat Adjustment Interrupted: Engine Start Condition / Low Voltage Check',
+      explanationKa: 'მძღოლის სავარძლის მოდულმა (SMFA 0x6D) დააფიქსირა სავარძლის რეგულირების დროებითი შეზღუდვა ძრავის დაქოქვის ან სისტემური ძაბვის ვარდნის გამო. ეს არის ინფორმაციული სტატუსი, რომელიც ხშირად ჩნდება დაქოქვისას ან აკუმულატორის დაბალი მუხტის დროს.',
+      symptomsKa: [
+        'სავარძლის მეხსიერების (Memory) ან ავტომატური რეგულირების დროებითი დაყოვნება დაქოქვის მომენტში',
+        'სავარძლის მოძრაობის შეჩერება დაბალი ძაბვისას',
+      ],
+      repairStepsKa: [
+        '1. წაშალეთ შეცდომა (Clear DTC) პირდაპირ ამ ეკრანიდან.',
+        '2. სავარძლის ნორმალიზაცია/კალიბრაცია (თუ პოზიციას არ იმახსოვრებს): ჩართეთ ანთება, გადაწიეთ სავარძელი ბოლომდე წინ და გეჭიროთ 2 წამი, შემდეგ ბოლომდე უკან და გეჭიროთ 2 წამი.',
+        '3. შეამოწმეთ აკუმულატორის დამუხტვა, თუ კოდი ყოველ დაქოქვაზე მეორდება.',
+      ],
+      severity: 'LOW',
+      safeToDrive: true,
+    ),
+    '0x58:802A1E': BmwGuidedFaultDetail(
+      titleEn: 'Seat Adjustment Interrupted: Engine Start Condition / Low Voltage Check',
+      explanationKa: 'მძღოლის სავარძლის მოდულმა (SMFA) დააფიქსირა სავარძლის რეგულირების დროებითი შეზღუდვა ძრავის დაქოქვის ან სისტემური ძაბვის ვარდნის გამო.',
+      symptomsKa: [
+        'სავარძლის ელექტრო რეგულირების დროებითი დაყოვნება დაქოქვისას',
+      ],
+      repairStepsKa: [
+        '1. წაშალეთ შეცდომა (Clear DTC).',
+        '2. სავარძლის ნორმალიზაცია: გადაწიეთ ბოლომდე წინ და ბოლომდე უკან.',
+      ],
+      severity: 'LOW',
       safeToDrive: true,
     ),
 
