@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'connection_manager.dart';
 import 'protocols/enet_hsfz_protocol.dart';
 import 'bmw_ecu_scanner.dart' show EcuResetType;
 export 'bmw_ecu_scanner.dart' show EcuResetType;
 
-/// ISTA Battery Replacement History Record (Status Batterietausch / Kilometerstand bei Batterietausch)
+/// Factory Battery Replacement History Record (Status Batterietausch / Kilometerstand bei Batterietausch)
 /// Extracted from DME (0x12) DID 0xD012.
 class BatteryHistoryRecord {
   final int replacementIndex;
@@ -706,7 +707,11 @@ class BmwServiceFunctions {
   BmwServiceFunctions({this.protocol});
 
   EnetHsfzProtocol _getActiveProtocol() {
-    return protocol ?? EnetHsfzProtocol();
+    if (protocol != null) return protocol!;
+    if (ConnectionManager.instance.protocol.isConnected) {
+      return ConnectionManager.instance.protocol;
+    }
+    return ConnectionManager.instance.protocol;
   }
 
   /// Ensures active TCP/HSFZ diagnostic link to vehicle

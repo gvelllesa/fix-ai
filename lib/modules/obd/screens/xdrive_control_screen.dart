@@ -379,7 +379,7 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'xDrive Mode Control',
+                'xDrive Mode',
                 overflow: TextOverflow.ellipsis,
                 style: FixAiTokens.titleMedium,
               ),

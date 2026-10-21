@@ -6,7 +6,7 @@ import '../widgets/advanced_connection_dialog.dart';
 
 /// BMW Dealer-Level Workshop Routines & Service Functions Screen
 ///
-/// Ports BimmerGeeks ProTool & ISTA dealer-level service functions to FIX AI:
+/// Factory dealer-level service functions and workshop routines for FIX AI:
 /// 1. Battery Registration (DME 0xA010 & CAS/BDC KLASSE_BATTERIE)
 /// 2. Injector Flow Compensation (DME DIDs 0xD101..0xD106)
 /// 3. ABS / DSC Hydraulic Brake Bleeding (DSC 0x0322)
@@ -3691,8 +3691,8 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'BMW Workshop Routines',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              'Workshop Routines',
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
             ),
             Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,

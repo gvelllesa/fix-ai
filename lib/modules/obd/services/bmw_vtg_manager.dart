@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'connection_manager.dart';
 import 'protocols/enet_hsfz_protocol.dart';
 
 /// xDrive Operating Modes supported by BMW VTG / VGSG
@@ -157,7 +158,11 @@ class BmwVtgManager {
   Stream<VtgTelemetryData> get telemetryStream => _telemetryController.stream;
 
   EnetHsfzProtocol _getActiveProtocol() {
-    return protocol ?? EnetHsfzProtocol();
+    if (protocol != null) return protocol!;
+    if (ConnectionManager.instance.protocol.isConnected) {
+      return ConnectionManager.instance.protocol;
+    }
+    return ConnectionManager.instance.protocol;
   }
 
   /// Ensures connection to vehicle diagnostic endpoint
