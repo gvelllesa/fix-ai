@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/connection_manager.dart';
 import '../services/protocols/enet_hsfz_protocol.dart';
 import '../services/bmw_ecu_scanner.dart';
+import '../widgets/bmw_diagnostic_results_sheet.dart';
 
 class EcuScanScreen extends StatefulWidget {
   final EnetHsfzProtocol? activeProtocol;
@@ -1122,12 +1123,26 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
       return;
     }
 
-    if (widget.onSendToChat != null) {
-      widget.onSendToChat!(allCodes);
-      Navigator.pop(context);
-    } else {
-      Navigator.pop(context, allCodes);
-    }
+    // Offline-first: show official BMW factory explanations (no network needed).
+    // The cloud AI chat remains available as an optional secondary action.
+    final ecus = _topology
+        .where((e) => e.isResponding && e.faultCodes.isNotEmpty)
+        .map((e) => ScannedEcuFaults(e.address, e.name, List<String>.from(e.faultCodes)))
+        .toList();
+
+    BmwDiagnosticResultsSheet.show(
+      context,
+      ecus,
+      onAskAi: () {
+        Navigator.pop(context); // close the sheet
+        if (widget.onSendToChat != null) {
+          widget.onSendToChat!(allCodes);
+          Navigator.pop(context);
+        } else {
+          Navigator.pop(context, allCodes);
+        }
+      },
+    );
   }
 
   @override
