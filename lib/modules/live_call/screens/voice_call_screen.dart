@@ -9,7 +9,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../data/gemini_live_call_service.dart';
 
 class VoiceCallScreen extends StatefulWidget {
-  const VoiceCallScreen({Key? key}) : super(key: key);
+  const VoiceCallScreen({super.key});
 
   @override
   State<VoiceCallScreen> createState() => _VoiceCallScreenState();

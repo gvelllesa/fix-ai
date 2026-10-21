@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/connection_manager.dart';
 import '../services/protocols/enet_hsfz_protocol.dart';
 import '../services/bmw_ecu_scanner.dart';
 
@@ -49,6 +50,9 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
     super.initState();
     if (widget.activeProtocol != null && widget.activeProtocol!.isConnected) {
       _protocol = widget.activeProtocol!;
+      _ownsProtocol = false;
+    } else if (ConnectionManager.instance.protocol.isConnected) {
+      _protocol = ConnectionManager.instance.protocol;
       _ownsProtocol = false;
     } else {
       _protocol = EnetHsfzProtocol();

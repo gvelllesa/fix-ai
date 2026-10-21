@@ -27,6 +27,23 @@
     @androidx.annotation.Keep <methods>;
 }
 
-# Obfuscate proprietary algorithm implementations and business logic
--repackageclasses 'com.example.ai_car_diagnostics.obfuscated'
--allowaccessmodification
+# Keep Application & Native USB FTDI Activity
+-keep class com.example.ai_car_diagnostics.** { *; }
+
+# Keep AndroidX Room, WorkManager, Startup & Concurrent
+-keep class * extends androidx.room.RoomDatabase { *; }
+-keep @androidx.room.Database class * { *; }
+-keep class * implements androidx.startup.Initializer { *; }
+-keep class androidx.work.** { *; }
+-keep class androidx.room.** { *; }
+-keep class androidx.startup.** { *; }
+
+# Suppress optional Play Core deferred components & ML Kit optional language models
+-dontwarn com.google.android.play.core.**
+-dontwarn com.google.firebase.iid.FirebaseInstanceId
+-dontwarn com.google.mlkit.vision.text.chinese.**
+-dontwarn com.google.mlkit.vision.text.devanagari.**
+-dontwarn com.google.mlkit.vision.text.japanese.**
+-dontwarn com.google.mlkit.vision.text.korean.**
+
+

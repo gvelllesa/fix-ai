@@ -5,10 +5,10 @@ class MediaButtons extends StatelessWidget {
   final VoidCallback onMicrophonePressed;
 
   const MediaButtons({
-    Key? key,
+    super.key,
     required this.onCameraPressed,
     required this.onMicrophonePressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

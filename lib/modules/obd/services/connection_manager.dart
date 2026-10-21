@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'protocols/bluetooth_strategy.dart';
 import 'protocols/enet_hsfz_protocol.dart';
+import 'protocols/kdcan_protocol.dart';
 
 enum LinkState {
   disconnected,
@@ -131,6 +133,61 @@ class ConnectionManager {
     } finally {
       _isConnecting = false;
     }
+  }
+
+  /// Automatically detects and connects to any active BMW ENET/DoIP gateway
+  /// using UDP broadcast port 6811 discovery first, then candidate IP scan.
+  Future<bool> autoConnect({Duration timeout = const Duration(seconds: 4)}) async {
+    final detected = await _protocol.detectAdapter();
+    if (detected == null) return false;
+    return connect(
+      host: detected.host,
+      port: detected.port,
+      useDoip: detected.isDoip,
+      timeout: timeout,
+    );
+  }
+
+  /// Attaches an active BLE ISO-TP adapter ([BluetoothStrategy]) so all BMW
+  /// services (Scanner, Coding, Service Functions, Telemetry) work over Bluetooth.
+  Future<bool> connectBleAdapter(BluetoothStrategy bleStrategy) async {
+    if (!bleStrategy.isConnected) return false;
+    final isoOk = await bleStrategy.initializeBmwIsoTpCan();
+    if (!isoOk) return false;
+
+    _protocol.attachBleStrategy(bleStrategy);
+    _updateSnapshot(
+      linkState: LinkState.adapterOnly,
+      host: 'BLE-ISO-TP',
+      port: 0,
+      isDoip: false,
+    );
+    _startHeartbeat();
+    await _probeEcuIdentity();
+    return true;
+  }
+
+  /// Attaches an active USB INPA K+DCAN cable ([KdcanProtocol]) so all BMW
+  /// E-Series and F-Series services work over FTDI USB-Serial K-Line / D-CAN.
+  Future<bool> connectKdcanAdapter(
+    KdcanProtocol kdcanProtocol, {
+    DcanMode mode = DcanMode.dCan,
+  }) async {
+    if (!kdcanProtocol.isConnected) {
+      final initOk = await kdcanProtocol.initialize(mode: mode);
+      if (!initOk) return false;
+    }
+
+    _protocol.attachKdcanProtocol(kdcanProtocol);
+    _updateSnapshot(
+      linkState: LinkState.adapterOnly,
+      host: 'USB-KDCAN-${mode.name.toUpperCase()}',
+      port: kdcanProtocol.baudrate,
+      isDoip: false,
+    );
+    _startHeartbeat();
+    await _probeEcuIdentity();
+    return true;
   }
 
   /// Reconnects to the last known successfully connected endpoint

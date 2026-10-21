@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../data/supabase_client.dart';
 
 class PartPriceResult {
   final String partName;
@@ -31,7 +32,7 @@ class PartPriceResult {
 }
 
 class PartsFinderService {
-  static final _supabase = Supabase.instance.client;
+  static SupabaseClient get _supabase => SupabaseClientManager().client;
 
   /// Calls the Supabase Edge Function which checks cache first,
   /// then dispatches to the Python scraper backend if needed.

@@ -133,10 +133,15 @@ class LinkStatusBar extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      flashStage ?? 'Flashing in progress...',
-                      style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+                    Expanded(
+                      child: Text(
+                        flashStage ?? 'Flashing in progress...',
+                        style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       '${(flashProgress! * 100).toStringAsFixed(1)}%',
                       style: const TextStyle(color: Color(0xFF29B6F6), fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'monospace'),

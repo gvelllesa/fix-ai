@@ -17,7 +17,7 @@ import '../../../../core/data/n55_spatial_map.dart';
 class ArScanScreen extends StatefulWidget {
   final String partName;
 
-  const ArScanScreen({Key? key, required this.partName}) : super(key: key);
+  const ArScanScreen({super.key, required this.partName});
 
   @override
   State<ArScanScreen> createState() => _ArScanScreenState();
@@ -164,7 +164,7 @@ class _ArScanScreenState extends State<ArScanScreen> with SingleTickerProviderSt
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.blueAccent.withOpacity(0.8),
+                color: Colors.blueAccent.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
@@ -201,7 +201,7 @@ class _ArScanScreenState extends State<ArScanScreen> with SingleTickerProviderSt
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.greenAccent, width: 4),
-                    color: Colors.greenAccent.withOpacity(0.2),
+                    color: Colors.greenAccent.withValues(alpha: 0.2),
                   ),
                   child: const Center(
                     child: Icon(Icons.search, color: Colors.greenAccent, size: 50),

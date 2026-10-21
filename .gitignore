@@ -66,3 +66,7 @@ tools/
 ios/Flutter/
 ios/Runner/GeneratedPluginRegistrant.*
 build_and_upload.ps1
+
+# Build outputs
+*.apk
+*.aab

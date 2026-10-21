@@ -4,6 +4,25 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'protocols/enet_hsfz_protocol.dart';
 import 'bmw_ecu_scanner.dart';
+import 'bmw_flash_manager.dart';
+
+/// Version-specific parameter override for a specific BMW CAFD SGBM-ID prefix
+/// (e.g. `CAFD_00000794_014`).
+class CafdParameterOverride {
+  final int? did;
+  final int? byteOffset;
+  final int? bitMask;
+  final int? activeValue;
+  final int? inactiveValue;
+
+  const CafdParameterOverride({
+    this.did,
+    this.byteOffset,
+    this.bitMask,
+    this.activeValue,
+    this.inactiveValue,
+  });
+}
 
 /// Representation of a 1-Tap BMW FDL Cheat Code parameter.
 class FdlCheatCode {
@@ -25,6 +44,7 @@ class FdlCheatCode {
   final int? secondaryBitMask;
   final int? secondaryActiveValue;
   final int? secondaryInactiveValue;
+  final Map<String, CafdParameterOverride>? cafdOverrides;
   bool isCurrentlyActive;
 
   FdlCheatCode({
@@ -46,8 +66,46 @@ class FdlCheatCode {
     this.secondaryBitMask,
     this.secondaryActiveValue,
     this.secondaryInactiveValue,
+    this.cafdOverrides,
     this.isCurrentlyActive = false,
   });
+
+  /// Resolves CAFD-version-specific DID, byteOffset, bitMask, and target values
+  /// when the ECU's active `CAFD` SGBM-ID matches an entry in [cafdOverrides].
+  FdlCheatCode resolveForCafd(String? cafdSgbmId) {
+    if (cafdSgbmId == null || cafdOverrides == null || cafdOverrides!.isEmpty) {
+      return this;
+    }
+    final upperCafd = cafdSgbmId.toUpperCase();
+    for (final entry in cafdOverrides!.entries) {
+      if (upperCafd.startsWith(entry.key.toUpperCase())) {
+        final ov = entry.value;
+        return FdlCheatCode(
+          id: id,
+          name: name,
+          category: category,
+          description: description,
+          targetEcuAddress: targetEcuAddress,
+          targetEcuName: targetEcuName,
+          did: ov.did ?? did,
+          byteOffset: ov.byteOffset ?? byteOffset,
+          bitMask: ov.bitMask ?? bitMask,
+          activeValue: ov.activeValue ?? activeValue,
+          inactiveValue: ov.inactiveValue ?? inactiveValue,
+          secondaryEcuAddress: secondaryEcuAddress,
+          secondaryEcuName: secondaryEcuName,
+          secondaryDid: secondaryDid,
+          secondaryByteOffset: secondaryByteOffset,
+          secondaryBitMask: secondaryBitMask,
+          secondaryActiveValue: secondaryActiveValue,
+          secondaryInactiveValue: secondaryInactiveValue,
+          cafdOverrides: cafdOverrides,
+          isCurrentlyActive: isCurrentlyActive,
+        );
+      }
+    }
+    return this;
+  }
 
   FdlCheatCode copyWith({bool? isCurrentlyActive}) {
     return FdlCheatCode(
@@ -69,6 +127,7 @@ class FdlCheatCode {
       secondaryBitMask: secondaryBitMask,
       secondaryActiveValue: secondaryActiveValue,
       secondaryInactiveValue: secondaryInactiveValue,
+      cafdOverrides: cafdOverrides,
       isCurrentlyActive: isCurrentlyActive ?? this.isCurrentlyActive,
     );
   }
@@ -1635,40 +1694,78 @@ class BmwCodingService {
     ];
   }
 
+  /// Reads the BMW SVK (Software-Verbaukung-Kennung) table (`UDS 0x22 0xF1 0x01`)
+  /// from [ecuAddress] and parses all 8-byte binary SGBM-ID entries (`HWEL`, `BTLD`,
+  /// `SWFL`, `CAFD`, etc.).
+  Future<List<SvkRecord>> readEcuSvkRecords(int ecuAddress) async {
+    final activeProto = _getActiveProtocol();
+    try {
+      final resp = await activeProto.sendUdsAndAwait(
+        ecuAddress,
+        [0x22, 0xF1, 0x01],
+        timeout: const Duration(seconds: 2),
+      );
+      if (resp != null && resp.length > 3 && resp[0] == 0x62) {
+        return EcuIdentity.parseSvkRecords(resp);
+      }
+    } catch (e) {
+      debugPrint('[BmwCodingService] Error reading SVK from 0x${ecuAddress.toRadixString(16)}: $e');
+    }
+    return const [];
+  }
+
+  /// Detects the active `CAFD` SGBM-ID (e.g. `CAFD_00000794_014_040_122`) from
+  /// the target ECU's SVK (`DID 0xF101`), matching `FxxSpecificHelper.DetectCafdFromSwe`.
+  Future<String?> detectCafdFromSvk(int ecuAddress) async {
+    final records = await readEcuSvkRecords(ecuAddress);
+    for (final rec in records) {
+      if (rec.processClassName == 'CAFD') {
+        return rec.formatted;
+      }
+    }
+    return null;
+  }
+
   /// Queries the live vehicle coding state of a single cheat code
   Future<bool?> readCheatCodeStatus(FdlCheatCode code) async {
     final activeProto = _getActiveProtocol();
     try {
+      FdlCheatCode effectiveCode = code;
+      if (code.cafdOverrides != null && code.cafdOverrides!.isNotEmpty) {
+        final cafd = await detectCafdFromSvk(code.targetEcuAddress);
+        effectiveCode = code.resolveForCafd(cafd);
+      }
+
       final resp = await activeProto.sendUdsAndAwait(
-        code.targetEcuAddress,
-        [0x22, (code.did >> 8) & 0xFF, code.did & 0xFF],
+        effectiveCode.targetEcuAddress,
+        [0x22, (effectiveCode.did >> 8) & 0xFF, effectiveCode.did & 0xFF],
         timeout: const Duration(seconds: 2),
       );
 
       if (resp != null && resp.length > 3 && resp[0] == 0x62) {
         final payload = resp.sublist(3);
-        if (code.byteOffset < payload.length) {
-          final currentByte = payload[code.byteOffset];
-          final currentVal = currentByte & code.bitMask;
-          final isActive = currentVal == (code.activeValue & code.bitMask);
+        if (effectiveCode.byteOffset < payload.length) {
+          final currentByte = payload[effectiveCode.byteOffset];
+          final currentVal = currentByte & effectiveCode.bitMask;
+          final isActive = currentVal == (effectiveCode.activeValue & effectiveCode.bitMask);
 
           // If secondary ECU parameters exist, verify secondary module state as well
           if (isActive &&
-              code.secondaryEcuAddress != null &&
-              code.secondaryDid != null &&
-              code.secondaryByteOffset != null) {
+              effectiveCode.secondaryEcuAddress != null &&
+              effectiveCode.secondaryDid != null &&
+              effectiveCode.secondaryByteOffset != null) {
             try {
               final secResp = await activeProto.sendUdsAndAwait(
-                code.secondaryEcuAddress!,
-                [0x22, (code.secondaryDid! >> 8) & 0xFF, code.secondaryDid! & 0xFF],
+                effectiveCode.secondaryEcuAddress!,
+                [0x22, (effectiveCode.secondaryDid! >> 8) & 0xFF, effectiveCode.secondaryDid! & 0xFF],
                 timeout: const Duration(seconds: 2),
               );
               if (secResp != null && secResp.length > 3 && secResp[0] == 0x62) {
                 final secPayload = secResp.sublist(3);
-                if (code.secondaryByteOffset! < secPayload.length) {
-                  final secByte = secPayload[code.secondaryByteOffset!];
-                  final secMask = code.secondaryBitMask ?? 0xFF;
-                  final secTarget = (code.secondaryActiveValue ?? 0x01) & secMask;
+                if (effectiveCode.secondaryByteOffset! < secPayload.length) {
+                  final secByte = secPayload[effectiveCode.secondaryByteOffset!];
+                  final secMask = effectiveCode.secondaryBitMask ?? 0xFF;
+                  final secTarget = (effectiveCode.secondaryActiveValue ?? 0x01) & secMask;
                   final secIsActive = (secByte & secMask) == secTarget;
                   code.isCurrentlyActive = secIsActive;
                   return secIsActive;
@@ -1706,10 +1803,10 @@ class BmwCodingService {
   /// 2. Read existing NCD coding block (0x22)
   /// 3. Create raw NCD backup and persist to disk
   /// 4. Apply bitwise manipulation to modify specific parameter
-  /// 5. Write modified NCD block (0x2E)
+  /// 5. Unlock Security Access (0x27) & write modified NCD block (0x2E)
   /// 6. If secondary ECU present, repeat sequence
-  /// 7. Reset target ECU(s) via SoftReset (0x11 0x03)
-  /// 8. Return to default session (0x10 0x01)
+  /// 7. Validate coding checksum & signature stamp (0x31 0x01 0x0F 0x01)
+  /// 8. Reset target ECU(s) via SoftReset (0x11 0x03) & return to default session (0x10 0x01)
   Future<CodingResult> applyCheatCode(
     FdlCheatCode code,
     bool enable, {
@@ -1741,10 +1838,17 @@ class BmwCodingService {
     final vin = await readVehicleVin() ?? 'UNKNOWN_VIN';
 
     try {
+      // Optional CAFD SGBM-ID version resolution (FxxSpecificHelper.DetectCafdFromSwe)
+      FdlCheatCode effectiveCode = code;
+      if (code.cafdOverrides != null && code.cafdOverrides!.isNotEmpty) {
+        final cafd = await detectCafdFromSvk(code.targetEcuAddress);
+        effectiveCode = code.resolveForCafd(cafd);
+      }
+
       // Step 1: Open Extended Session on Primary ECU
-      onProgress?.call('Opening Extended Diagnostic Session on ${code.targetEcuName}...', 0.25);
+      onProgress?.call('Opening Extended Diagnostic Session on ${effectiveCode.targetEcuName}...', 0.25);
       final sessionResp = await activeProto.sendUdsAndAwait(
-        code.targetEcuAddress,
+        effectiveCode.targetEcuAddress,
         [0x10, 0x03],
         timeout: const Duration(seconds: 2),
       );
@@ -1752,101 +1856,105 @@ class BmwCodingService {
         return CodingResult(
           success: false,
           title: 'Session Rejection',
-          message: 'Target ECU 0x${code.targetEcuAddress.toRadixString(16)} rejected Extended Session (0x10 0x03). Check Terminal 15.',
+          message: 'Target ECU 0x${effectiveCode.targetEcuAddress.toRadixString(16)} rejected Extended Session (0x10 0x03). Check Terminal 15.',
         );
       }
 
       // Step 2: Read current NCD Block (0x22 didH didL)
-      onProgress?.call('Reading current NCD block DID 0x${code.did.toRadixString(16)}...', 0.4);
+      onProgress?.call('Reading current NCD block DID 0x${effectiveCode.did.toRadixString(16)}...', 0.4);
       final readResp = await activeProto.sendUdsAndAwait(
-        code.targetEcuAddress,
-        [0x22, (code.did >> 8) & 0xFF, code.did & 0xFF],
+        effectiveCode.targetEcuAddress,
+        [0x22, (effectiveCode.did >> 8) & 0xFF, effectiveCode.did & 0xFF],
         timeout: const Duration(seconds: 2),
       );
       if (readResp == null || readResp.length < 3 || readResp[0] != 0x62) {
-        await _returnToDefaultSession(code.targetEcuAddress);
+        await _returnToDefaultSession(effectiveCode.targetEcuAddress);
         return CodingResult(
           success: false,
           title: 'Read Coding Error',
-          message: 'Failed to read coding block 0x${code.did.toRadixString(16)} from ${code.targetEcuName}.',
+          message: 'Failed to read coding block 0x${effectiveCode.did.toRadixString(16)} from ${effectiveCode.targetEcuName}.',
         );
       }
 
       final rawBlock = readResp.sublist(3);
-      if (code.byteOffset >= rawBlock.length) {
-        await _returnToDefaultSession(code.targetEcuAddress);
+      if (effectiveCode.byteOffset >= rawBlock.length) {
+        await _returnToDefaultSession(effectiveCode.targetEcuAddress);
         return CodingResult(
           success: false,
           title: 'Byte Offset Error',
-          message: 'Offset ${code.byteOffset} exceeds block length ${rawBlock.length}.',
+          message: 'Offset ${effectiveCode.byteOffset} exceeds block length ${rawBlock.length}.',
         );
       }
 
       // Step 3: Create NCD Raw Backup and persist
       onProgress?.call('Saving pristine NCD raw backup to storage...', 0.55);
-      createdBackupId = 'ncd_${code.targetEcuAddress.toRadixString(16)}_${code.did.toRadixString(16)}_${DateTime.now().millisecondsSinceEpoch}';
+      createdBackupId = 'ncd_${effectiveCode.targetEcuAddress.toRadixString(16)}_${effectiveCode.did.toRadixString(16)}_${DateTime.now().millisecondsSinceEpoch}';
       final backup = NcdBackup(
         id: createdBackupId,
         timestamp: DateTime.now(),
         vin: vin,
-        ecuAddress: code.targetEcuAddress,
-        ecuName: code.targetEcuName,
-        did: code.did,
-        cheatCodeId: code.id,
-        cheatCodeName: code.name,
+        ecuAddress: effectiveCode.targetEcuAddress,
+        ecuName: effectiveCode.targetEcuName,
+        did: effectiveCode.did,
+        cheatCodeId: effectiveCode.id,
+        cheatCodeName: effectiveCode.name,
         originalBytes: Uint8List.fromList(rawBlock),
-        description: 'Auto-backup before coding ${code.name} (${enable ? "ACTIVATE" : "DEACTIVATE"})',
+        description: 'Auto-backup before coding ${effectiveCode.name} (${enable ? "ACTIVATE" : "DEACTIVATE"})',
       );
       await saveBackup(backup);
 
       // Step 4: Apply Bitwise Parameter Manipulation
       final modifiedBlock = Uint8List.fromList(rawBlock);
-      final targetVal = enable ? code.activeValue : code.inactiveValue;
-      modifiedBlock[code.byteOffset] =
-          (modifiedBlock[code.byteOffset] & ~code.bitMask) | (targetVal & code.bitMask);
+      final targetVal = enable ? effectiveCode.activeValue : effectiveCode.inactiveValue;
+      modifiedBlock[effectiveCode.byteOffset] =
+          (modifiedBlock[effectiveCode.byteOffset] & ~effectiveCode.bitMask) | (targetVal & effectiveCode.bitMask);
+
+      // Step 4.5: Unlock Security Access (0x27) prior to 0x2E WriteDataByIdentifier
+      onProgress?.call('Unlocking Security Access on ${effectiveCode.targetEcuName}...', 0.62);
+      await unlockSecurityAccess(effectiveCode.targetEcuAddress);
 
       // Step 5: Write modified block via WriteDataByIdentifier (0x2E didH didL ...bytes)
-      onProgress?.call('Writing modified FDL parameters to ${code.targetEcuName}...', 0.7);
+      onProgress?.call('Writing modified FDL parameters to ${effectiveCode.targetEcuName}...', 0.7);
       final writePayload = <int>[
         0x2E,
-        (code.did >> 8) & 0xFF,
-        code.did & 0xFF,
+        (effectiveCode.did >> 8) & 0xFF,
+        effectiveCode.did & 0xFF,
         ...modifiedBlock,
       ];
       final writeResp = await activeProto.sendUdsAndAwait(
-        code.targetEcuAddress,
+        effectiveCode.targetEcuAddress,
         writePayload,
         timeout: const Duration(seconds: 3),
       );
       if (writeResp == null || writeResp.length < 3 || writeResp[0] != 0x6E) {
         final nrc = (writeResp != null && writeResp.length >= 3) ? writeResp[2] : null;
-        await _returnToDefaultSession(code.targetEcuAddress);
+        await _returnToDefaultSession(effectiveCode.targetEcuAddress);
         return CodingResult(
           success: false,
           title: 'Write Failure',
-          message: 'Writing DID 0x${code.did.toRadixString(16)} rejected by ECU.',
+          message: 'Writing DID 0x${effectiveCode.did.toRadixString(16)} rejected by ECU.',
           nrcCode: nrc,
           backupId: createdBackupId,
         );
       }
 
       // Step 6: Handle Secondary ECU if multi-target (e.g. 2TB transmission on EGS + FEM)
-      if (code.secondaryEcuAddress != null && code.secondaryDid != null) {
-        onProgress?.call('Coding secondary module ${code.secondaryEcuName}...', 0.8);
-        await _codeSecondaryModule(code, enable, vin);
+      if (effectiveCode.secondaryEcuAddress != null && effectiveCode.secondaryDid != null) {
+        onProgress?.call('Coding secondary module ${effectiveCode.secondaryEcuName}...', 0.8);
+        await _codeSecondaryModule(effectiveCode, enable, vin);
       }
 
       // Step 7: Finalize Coding Signature / Stamp (0x31 0x01 0x0F 0x01 - ProTool & EDIABAS Parity)
       // This routine ensures ECU updates internal NCD checksum and prevents NRC 0x72 or Coding DTCs
       onProgress?.call('Validating coding checksum & signature stamp...', 0.85);
       await activeProto.sendUdsAndAwait(
-        code.targetEcuAddress,
+        effectiveCode.targetEcuAddress,
         [0x31, 0x01, 0x0F, 0x01],
         timeout: const Duration(seconds: 2),
       );
-      if (code.secondaryEcuAddress != null) {
+      if (effectiveCode.secondaryEcuAddress != null) {
         await activeProto.sendUdsAndAwait(
-          code.secondaryEcuAddress!,
+          effectiveCode.secondaryEcuAddress!,
           [0x31, 0x01, 0x0F, 0x01],
           timeout: const Duration(seconds: 2),
         );
@@ -1855,22 +1963,22 @@ class BmwCodingService {
       // Step 8: SoftReset / Reboot ECU to activate new configuration (0x11 0x03)
       onProgress?.call('Rebooting module to activate new configuration...', 0.9);
       await activeProto.sendUdsAndAwait(
-        code.targetEcuAddress,
+        effectiveCode.targetEcuAddress,
         [0x11, 0x03],
         timeout: const Duration(seconds: 2),
       );
-      if (code.secondaryEcuAddress != null) {
+      if (effectiveCode.secondaryEcuAddress != null) {
         await activeProto.sendUdsAndAwait(
-          code.secondaryEcuAddress!,
+          effectiveCode.secondaryEcuAddress!,
           [0x11, 0x03],
           timeout: const Duration(seconds: 2),
         );
       }
 
       // Return to default session
-      await _returnToDefaultSession(code.targetEcuAddress);
-      if (code.secondaryEcuAddress != null) {
-        await _returnToDefaultSession(code.secondaryEcuAddress!);
+      await _returnToDefaultSession(effectiveCode.targetEcuAddress);
+      if (effectiveCode.secondaryEcuAddress != null) {
+        await _returnToDefaultSession(effectiveCode.secondaryEcuAddress!);
       }
 
       code.isCurrentlyActive = enable;
@@ -1931,6 +2039,7 @@ class BmwCodingService {
       if (secOffset < block.length) {
         final mod = Uint8List.fromList(block);
         mod[secOffset] = (mod[secOffset] & ~secMask) | (secVal & secMask);
+        await unlockSecurityAccess(secEcu);
         await activeProto.sendUdsAndAwait(
           secEcu,
           [0x2E, (secDid >> 8) & 0xFF, secDid & 0xFF, ...mod],
@@ -1983,6 +2092,10 @@ class BmwCodingService {
         );
       }
 
+      // 1.5. Unlock Security Access (0x27) prior to 0x2E WriteDataByIdentifier
+      onProgress?.call('Unlocking Security Access on ${backup.ecuName}...', 0.45);
+      await unlockSecurityAccess(backup.ecuAddress);
+
       // 2. Write original NCD block bytes (0x2E didH didL ...originalBytes)
       onProgress?.call('Flashing original NCD block bytes (${backup.originalBytes.length} bytes)...', 0.6);
       final writePayload = <int>[
@@ -2007,6 +2120,14 @@ class BmwCodingService {
           nrcCode: nrc,
         );
       }
+
+      // 2.5. Finalize Coding Signature / Stamp (0x31 0x01 0x0F 0x01)
+      onProgress?.call('Validating restored coding checksum & signature stamp...', 0.75);
+      await activeProto.sendUdsAndAwait(
+        backup.ecuAddress,
+        [0x31, 0x01, 0x0F, 0x01],
+        timeout: const Duration(seconds: 2),
+      );
 
       // 3. Reset ECU (0x11 0x03)
       onProgress?.call('Rebooting ECU to apply restored factory parameters...', 0.85);

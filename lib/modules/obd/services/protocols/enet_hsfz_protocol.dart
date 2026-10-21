@@ -2,16 +2,39 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'bluetooth_strategy.dart';
+import 'kdcan_protocol.dart';
 
 class AdapterEndpoint {
   final String host;
   final int port;
   final bool isDoip;
+  final String? macAddress;
+  final String? discoveredVin;
 
   const AdapterEndpoint({
     required this.host,
     required this.port,
     this.isDoip = false,
+    this.macAddress,
+    this.discoveredVin,
+  });
+}
+
+/// Discovered BMW ZGW / BDC ENET Gateway metadata from UDP port 6811
+class EnetGatewayIdentity {
+  final String ipAddress;
+  final int diagPort;
+  final String? macAddress;
+  final String? vin;
+  final Uint8List rawPayload;
+
+  const EnetGatewayIdentity({
+    required this.ipAddress,
+    this.diagPort = 6801,
+    this.macAddress,
+    this.vin,
+    required this.rawPayload,
   });
 }
 
@@ -54,13 +77,24 @@ class EnetHsfzProtocol {
   // HSFZ Message Types
   static const int hsfzTypeData = 0x0001;        // Valid Application Payload
   static const int hsfzTypeGatewayEcho = 0x0002; // Gateway Acknowledgment (Ignored)
+  static const int hsfzTypeControlIgnit = 0x0010;// Control Port 6811 Ignition/Clamp State
+  static const int hsfzTypeVehicleIdent = 0x0011;// UDP Port 6811 Vehicle Identification
   static const int hsfzTypeAliveCheck = 0x0012;  // Gateway Keepalive Ping
   static const int hsfzTypeAliveResp = 0x0013;   // Gateway Keepalive Pong
+
+  static const int kEnetDiagPort = 6801;         // Standard BMW ZGW HSFZ TCP Port
+  static const int kEnetControlPort = 6811;      // Standard BMW ZGW UDP/TCP Control Port
+  static const int kDoipPort = 13400;            // ISO 13400-2 DoIP Port
 
   static const int _maxHsfzBody = 0x10000 + 2; // 64KB + 2 bytes addr header
 
   Socket? _socket;
   StreamSubscription? _subscription;
+  BluetoothStrategy? _bleStrategy;
+  BluetoothStrategy? get bleStrategy => _bleStrategy;
+  KdcanProtocol? _kdcanProtocol;
+  KdcanProtocol? get kdcanProtocol => _kdcanProtocol;
+
   Uint8List _rxBuffer = Uint8List(128 * 1024);
   int _rxLen = 0;
   int _rxOffset = 0;
@@ -74,11 +108,206 @@ class EnetHsfzProtocol {
   static int? lastConnectedPort;
 
   bool _isDoIpMode = false;
-  bool get isConnected => _socket != null;
+  bool get isConnected =>
+      _socket != null ||
+      (_bleStrategy != null && _bleStrategy!.isConnected) ||
+      (_kdcanProtocol != null && _kdcanProtocol!.isConnected);
+  bool get isBleIsoTpMode =>
+      _socket == null && _bleStrategy != null && _bleStrategy!.isConnected;
+  bool get isKdcanMode =>
+      _socket == null &&
+      !isBleIsoTpMode &&
+      _kdcanProtocol != null &&
+      _kdcanProtocol!.isConnected;
   static const MethodChannel _netBindChannel = MethodChannel('fixai/netbind');
 
-  /// Sweeps candidate IPs and ports [35000, 6801, 13400, 50160] to detect active BMW adapter
+  /// Attaches an active [BluetoothStrategy] (ELM327 / STN / vLinker) so that all
+  /// BMW UDS services seamlessly operate over ISO 15765-2 Extended CAN Addressing.
+  void attachBleStrategy(BluetoothStrategy? strategy) {
+    _bleStrategy = strategy;
+  }
+
+  /// Attaches an active [KdcanProtocol] (USB FTDI INPA K+DCAN cable) so that all
+  /// BMW E-Series & F-Series services operate seamlessly over K-Line / D-CAN.
+  void attachKdcanProtocol(KdcanProtocol? kdcan) {
+    _kdcanProtocol = kdcan;
+  }
+
+  /// Builds the 6-byte HSFZ UDP Vehicle Identification broadcast packet (`00 00 00 00 00 11`)
+  /// sent to UDP port 6811 (`EdiabasLib.EdInterfaceEnet` / `UNI_Flash.EnetConnectivityHelper`).
+  static Uint8List buildUdpIdentRequest() {
+    return Uint8List.fromList(const [0x00, 0x00, 0x00, 0x00, 0x00, hsfzTypeVehicleIdent]);
+  }
+
+  /// Builds the 6-byte HSFZ TCP Control Port 6811 Ignition / Terminal status request (`00 00 00 00 00 10`).
+  static Uint8List buildControlIgnitRequest() {
+    return Uint8List.fromList(const [0x00, 0x00, 0x00, 0x00, 0x00, hsfzTypeControlIgnit]);
+  }
+
+  /// Parses a UDP Port 6811 Vehicle Identification datagram from BMW ZGW / BDC.
+  static EnetGatewayIdentity? parseUdpIdentResponse(String responderIp, Uint8List datagram) {
+    if (datagram.length < 6) return null;
+    final bd = ByteData.sublistView(datagram);
+    final payloadLen = bd.getUint32(0, Endian.big);
+    final msgType = bd.getUint16(4, Endian.big);
+    if (msgType != hsfzTypeVehicleIdent) return null;
+
+    final body = datagram.length >= 6 + payloadLen
+        ? Uint8List.sublistView(datagram, 6, 6 + payloadLen)
+        : Uint8List.sublistView(datagram, 6);
+
+    String? mac;
+    String? vin;
+
+    // Extract ASCII fields (e.g. "DIAGADR10BMWMAC001A3F...VINWBA...") or raw 17-char VIN
+    final asciiText = String.fromCharCodes(
+      body.where((b) => b >= 0x20 && b <= 0x7E),
+    );
+    final vinMatch = RegExp(r'VIN([A-HJ-NPR-Z0-9]{17})').firstMatch(asciiText) ??
+        RegExp(r'([WBA|WBS|WBY|5UX|5YM|4US][A-HJ-NPR-Z0-9]{14})').firstMatch(asciiText);
+    if (vinMatch != null) {
+      vin = vinMatch.group(1);
+    }
+    final macMatch = RegExp(r'BMWMAC([0-9A-Fa-f]{12})').firstMatch(asciiText);
+    if (macMatch != null) {
+      final rawMac = macMatch.group(1)!.toUpperCase();
+      mac = List.generate(6, (i) => rawMac.substring(i * 2, i * 2 + 2)).join(':');
+    } else if (body.length >= 6 && asciiText.length < 6) {
+      mac = body
+          .sublist(0, 6)
+          .map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0'))
+          .join(':');
+    }
+
+    return EnetGatewayIdentity(
+      ipAddress: responderIp,
+      diagPort: kEnetDiagPort,
+      macAddress: mac,
+      vin: vin,
+      rawPayload: Uint8List.fromList(body),
+    );
+  }
+
+  /// Parses TCP Control Port 6811 Ignition / Terminal 15 clamp status response (`msgType == 0x0010`).
+  /// Returns `true` when ignition (KL15) is active.
+  static bool? parseControlIgnitResponse(Uint8List frame) {
+    if (frame.length < 7) return null;
+    final bd = ByteData.sublistView(frame);
+    final len = bd.getUint32(0, Endian.big);
+    final msgType = bd.getUint16(4, Endian.big);
+    if (msgType != hsfzTypeControlIgnit || len < 1) return null;
+    final clampByte = frame[6];
+    // Bit 0 / 0x01 or 0x04 indicates Terminal 15 / Ignition ON in ZGW control response
+    return (clampByte & 0x0F) != 0;
+  }
+
+  /// Broadcasts a UDP Vehicle Identification request on port 6811 to dynamically discover
+  /// any connected BMW ZGW/BDC gateway on Link-Local (169.254.x.x) or Wi-Fi/DHCP subnets.
+  Future<EnetGatewayIdentity?> discoverGatewayViaUdp({
+    Duration timeout = const Duration(milliseconds: 900),
+  }) async {
+    RawDatagramSocket? udp;
+    StreamSubscription<RawSocketEvent>? sub;
+    try {
+      udp = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+      udp.broadcastEnabled = true;
+
+      final completer = Completer<EnetGatewayIdentity?>();
+      sub = udp.listen((event) {
+        if (event == RawSocketEvent.read) {
+          final dg = udp?.receive();
+          if (dg != null) {
+            final parsed = parseUdpIdentResponse(dg.address.address, dg.data);
+            if (parsed != null && !completer.isCompleted) {
+              completer.complete(parsed);
+            }
+          }
+        }
+      });
+
+      final req = buildUdpIdentRequest();
+      final broadcastTargets = [
+        '255.255.255.255',
+        '169.254.255.255',
+        '192.168.16.255',
+        '192.168.0.255',
+        '192.168.1.255',
+      ];
+      for (final target in broadcastTargets) {
+        try {
+          udp.send(req, InternetAddress(target), kEnetControlPort);
+        } catch (_) {}
+      }
+
+      return await completer.future.timeout(timeout, onTimeout: () => null);
+    } catch (e) {
+      debugPrint('[ENET-HSFZ] UDP 6811 discovery notice: $e');
+      return null;
+    } finally {
+      await sub?.cancel();
+      udp?.close();
+    }
+  }
+
+  /// Queries TCP Control Port 6811 on the BMW gateway to check hardware KL15 ignition status.
+  Future<bool?> readControlPortIgnitionState({
+    String? host,
+    Duration timeout = const Duration(milliseconds: 1000),
+  }) async {
+    final targetHost = host ?? lastConnectedHost ?? '192.168.16.101';
+    Socket? ctrlSocket;
+    try {
+      ctrlSocket = await Socket.connect(targetHost, kEnetControlPort, timeout: timeout);
+      final completer = Completer<Uint8List>();
+      final sub = ctrlSocket.listen(
+        (data) {
+          if (!completer.isCompleted) {
+            completer.complete(Uint8List.fromList(data));
+          }
+        },
+        onError: (_) {},
+      );
+      ctrlSocket.add(buildControlIgnitRequest());
+      await ctrlSocket.flush();
+      final rsp = await completer.future.timeout(timeout);
+      await sub.cancel();
+      return parseControlIgnitResponse(rsp);
+    } catch (_) {
+      return null;
+    } finally {
+      ctrlSocket?.destroy();
+    }
+  }
+
+  /// Sweeps UDP port 6811 broadcast first, then candidate IPs and ports [35000, 6801, 13400, 50160]
   Future<AdapterEndpoint?> detectAdapter({String? preferredHost}) async {
+    // 1. Dynamic UDP Broadcast Discovery on Port 6811 (EdInterfaceEnet / UNI_Flash standard)
+    if (preferredHost == null || preferredHost.isEmpty) {
+      final discovered = await discoverGatewayViaUdp();
+      if (discovered != null) {
+        for (final port in const [kEnetDiagPort, kDoipPort]) {
+          try {
+            final s = await Socket.connect(
+              discovered.ipAddress,
+              port,
+              timeout: const Duration(milliseconds: 350),
+            );
+            await s.close();
+            lastConnectedHost = discovered.ipAddress;
+            lastConnectedPort = port;
+            return AdapterEndpoint(
+              host: discovered.ipAddress,
+              port: port,
+              isDoip: port == kDoipPort,
+              macAddress: discovered.macAddress,
+              discoveredVin: discovered.vin,
+            );
+          } catch (_) {}
+        }
+      }
+    }
+
+    // 2. Fallback to known candidate IPs and ports
     final candidateHosts = [
       if (preferredHost != null && preferredHost.isNotEmpty) preferredHost,
       if (lastConnectedHost != null && lastConnectedHost!.isNotEmpty) lastConnectedHost!,
@@ -316,6 +545,14 @@ class EnetHsfzProtocol {
 
   /// Sends raw HSFZ message: [Length 4B] [0x0001 2B] [Src 1B] [Dst 1B] [UDS bytes]
   Future<void> sendHsfz(int dst, List<int> udsPayload, {int src = testerAddress}) async {
+    if (isBleIsoTpMode) {
+      await _bleStrategy!.sendUdsOverIsoTp(dst, udsPayload);
+      return;
+    }
+    if (isKdcanMode) {
+      await _kdcanProtocol!.sendKwpAndAwait(dst, udsPayload);
+      return;
+    }
     if (_socket == null) throw StateError('Not connected to vehicle socket');
 
     if (_isDoIpMode) {
@@ -425,6 +662,42 @@ class EnetHsfzProtocol {
       if (isSuppress) {
         await sendHsfz(targetEcu, udsPayload);
         return Uint8List(0);
+      }
+
+      if (isBleIsoTpMode) {
+        final p = await _bleStrategy!.sendUdsOverIsoTp(
+          targetEcu,
+          udsPayload,
+          timeout: timeout,
+          p2Star: p2Star,
+          maxPending: maxPending,
+        );
+        if (p == null || p.isEmpty) return null;
+        if (p[0] == 0x7F && p.length >= 3 && p[1] == sid) {
+          return p;
+        }
+        if (p[0] == ((sid + 0x40) & 0xFF) && _echoMatches(udsPayload, p)) {
+          return p;
+        }
+        return null;
+      }
+
+      if (isKdcanMode) {
+        final p = await _kdcanProtocol!.sendKwpAndAwait(
+          targetEcu,
+          udsPayload,
+          timeout: timeout,
+          p2Star: p2Star,
+          maxPending: maxPending,
+        );
+        if (p == null || p.isEmpty) return null;
+        if (p[0] == 0x7F && p.length >= 3 && p[1] == sid) {
+          return p;
+        }
+        if (p[0] == ((sid + 0x40) & 0xFF)) {
+          return p;
+        }
+        return null;
       }
 
       final inbox = StreamController<Uint8List>();

@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import '../screens/vin_scanner_overlay.dart';
 
 class AddCarDialog extends StatefulWidget {
-  const AddCarDialog({Key? key}) : super(key: key);
+  const AddCarDialog({super.key});
 
   @override
   State<AddCarDialog> createState() => _AddCarDialogState();

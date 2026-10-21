@@ -129,11 +129,14 @@ class AiCarApp extends StatelessWidget {
         }
 
         return MaterialApp(
-          title: 'AiCar Diagnostic',
+          title: 'FIX AI',
           debugShowCheckedModeBanner: false,
           themeMode: themeController.themeMode,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
+          routes: {
+            '/login': (_) => const SignInScreen(),
+          },
           home: StreamBuilder<AuthState>(
             initialData: AuthState(AuthChangeEvent.initialSession, initialSession),
             stream: authStream,

@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../services/connection_manager.dart';
 import '../services/protocols/enet_hsfz_protocol.dart';
 import '../services/live_telemetry_service.dart';
 import '../services/bmw_sensor_registry.dart';
@@ -42,6 +44,7 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
   bool _ownsProtocol = false;
   late LiveTelemetryService _telemetryService;
   late BmwLiveActuator _actuator;
+  StreamSubscription<Map<String, double>>? _readingsSub;
 
   final ValueNotifier<TelemetryWarning?> _warningNotifier = ValueNotifier<TelemetryWarning?>(null);
   bool _isConnected = false;
@@ -55,6 +58,10 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
       _protocol = widget.activeProtocol!;
       _ownsProtocol = false;
       _isConnected = true;
+    } else if (ConnectionManager.instance.protocol.isConnected) {
+      _protocol = ConnectionManager.instance.protocol;
+      _ownsProtocol = false;
+      _isConnected = true;
     } else {
       _protocol = EnetHsfzProtocol();
       _ownsProtocol = true;
@@ -64,7 +71,7 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
     _actuator = BmwLiveActuator(protocol: _protocol);
 
     // RepaintBoundary isolates individual gauges; stream only updates HUD warnings
-    _telemetryService.readingsStream.listen((data) {
+    _readingsSub = _telemetryService.readingsStream.listen((data) {
       if (mounted) {
         _checkWarningState();
       }
@@ -128,6 +135,7 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
 
   @override
   void dispose() {
+    _readingsSub?.cancel();
     _telemetryService.stopPolling();
     if (_telemetryService.isLogging) {
       _telemetryService.stopLogging();

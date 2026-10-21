@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ai_car_diagnostics/core/config/feature_flags.dart';
 import 'package:ai_car_diagnostics/modules/obd/models/verified_flash_image.dart';
 import 'package:ai_car_diagnostics/modules/obd/services/protocols/enet_hsfz_protocol.dart';
 import 'package:ai_car_diagnostics/modules/obd/services/uds_flash_session.dart';
@@ -48,6 +49,10 @@ void main() {
     });
 
     test('Safety feature flag blocks flash execution unless allowExecutionInTest is set', () async {
+      final prevFlag = FeatureFlags.kFlashEnabled;
+      FeatureFlags.kFlashEnabled = false;
+      addTearDown(() => FeatureFlags.kFlashEnabled = prevFlag);
+
       final session = UdsFlashSession(
         proto: proto,
         remoteKeyProvider: (_) async => [0x11, 0x22, 0x33, 0x44],

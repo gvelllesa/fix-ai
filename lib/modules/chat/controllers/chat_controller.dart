@@ -19,7 +19,7 @@ class ChatController extends ChangeNotifier {
   GeminiDiagnosticService get diagnosticService => _diagnosticService;
   final ObdDataProcessor _obdProcessor = ObdDataProcessor();
 
-  List<ChatMessage> _messages = [];
+  final List<ChatMessage> _messages = [];
   List<ChatMessage> get messages => _messages;
 
   bool _isLoading = false;

@@ -16,11 +16,11 @@ class FixAiDrawer extends StatefulWidget {
   final Function(Map<String, dynamic>)? onVehicleSelected;
 
   const FixAiDrawer({
-    Key? key,
+    super.key,
     this.currentCarId,
     this.onObdConnected,
     this.onVehicleSelected,
-  }) : super(key: key);
+  });
 
   @override
   State<FixAiDrawer> createState() => _FixAiDrawerState();
@@ -36,8 +36,8 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
     final bgColor = theme.scaffoldBackgroundColor;
     final accentColor = theme.primaryColor;
     final textPrimary = theme.textTheme.bodyLarge?.color ?? Colors.white;
-    final textSecondary = textPrimary.withOpacity(0.7);
-    final textTertiary = textPrimary.withOpacity(0.54);
+    final textSecondary = textPrimary.withValues(alpha: 0.7);
+    final textTertiary = textPrimary.withValues(alpha: 0.54);
 
     return Drawer(
       backgroundColor: bgColor,
@@ -108,14 +108,14 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: theme.brightness == Brightness.dark 
-                          ? Colors.white.withOpacity(0.06) 
-                          : Colors.black.withOpacity(0.06),
+                          ? Colors.white.withValues(alpha: 0.06) 
+                          : Colors.black.withValues(alpha: 0.06),
                       foregroundColor: textPrimary,
                       minimumSize: const Size(double.infinity, 44),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                         side: BorderSide(
-                          color: accentColor.withOpacity(0.4),
+                          color: accentColor.withValues(alpha: 0.4),
                           width: 1.0,
                         ),
                       ),
@@ -140,16 +140,16 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: theme.brightness == Brightness.dark 
-                          ? Colors.white.withOpacity(0.05) 
-                          : Colors.black.withOpacity(0.05),
+                          ? Colors.white.withValues(alpha: 0.05) 
+                          : Colors.black.withValues(alpha: 0.05),
                       foregroundColor: textPrimary,
                       minimumSize: const Size(double.infinity, 44),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                         side: BorderSide(
                           color: theme.brightness == Brightness.dark
-                              ? Colors.white.withOpacity(0.12)
-                              : Colors.black.withOpacity(0.12)
+                              ? Colors.white.withValues(alpha: 0.12)
+                              : Colors.black.withValues(alpha: 0.12)
                         ),
                       ),
                       elevation: 0,
@@ -173,14 +173,14 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: theme.brightness == Brightness.dark 
-                          ? Colors.white.withOpacity(0.05) 
-                          : Colors.black.withOpacity(0.05),
+                          ? Colors.white.withValues(alpha: 0.05) 
+                          : Colors.black.withValues(alpha: 0.05),
                       foregroundColor: textPrimary,
                       minimumSize: const Size(double.infinity, 44),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                         side: BorderSide(
-                          color: Colors.greenAccent.withOpacity(0.4),
+                          color: Colors.greenAccent.withValues(alpha: 0.4),
                           width: 1.0,
                         ),
                       ),
@@ -291,6 +291,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                         context: context,
                         builder: (c) => const AdvancedConnectionDialog(),
                       );
+                      if (!context.mounted) return;
                       if (result != null && result['status'] == 'connected') {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -308,7 +309,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: textSecondary,
                       side: BorderSide(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                       ),
                       minimumSize: const Size(double.infinity, 38),
                       shape: RoundedRectangleBorder(
@@ -485,6 +486,9 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                         }
                       } catch (e) {
                         debugPrint('Error signing out: $e');
+                        if (context.mounted) {
+                          Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                        }
                       }
                     },
                     icon: Icon(Icons.logout, size: 20, color: textTertiary),
@@ -525,7 +529,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: theme.dividerColor.withOpacity(0.2),
+                        color: theme.dividerColor.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -545,7 +549,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withValues(alpha: 0.2),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         )
@@ -572,7 +576,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                         Text(
                           'Unlimited advanced ISTA-level diagnostics & OBD scans',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             fontSize: 13,
                           ),
                         ),
@@ -622,7 +626,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                             foregroundColor: textPrimary,
                             selectedForegroundColor: Colors.white,
                             selectedBackgroundColor: accentColor,
-                            side: BorderSide(color: textTertiary.withOpacity(0.2)),
+                            side: BorderSide(color: textTertiary.withValues(alpha: 0.2)),
                           ),
                         ),
                       );
@@ -654,7 +658,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                             foregroundColor: textPrimary,
                             selectedForegroundColor: Colors.white,
                             selectedBackgroundColor: accentColor,
-                            side: BorderSide(color: textTertiary.withOpacity(0.2)),
+                            side: BorderSide(color: textTertiary.withValues(alpha: 0.2)),
                           ),
                         ),
                       );
@@ -663,7 +667,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                   const SizedBox(height: 32),
                   
                   // 4. Danger Zone
-                  Divider(color: theme.dividerColor.withOpacity(0.1)),
+                  Divider(color: theme.dividerColor.withValues(alpha: 0.1)),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.delete_forever, color: Colors.red),
@@ -705,8 +709,8 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
   Widget _buildHistoryItem(BuildContext context, String title, {required bool isActive, required Color accentColor}) {
     final theme = Theme.of(context);
     final textPrimary = theme.textTheme.bodyLarge?.color ?? Colors.white;
-    final textSecondary = textPrimary.withOpacity(0.7);
-    final hoverColor = theme.brightness == Brightness.dark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05);
+    final textSecondary = textPrimary.withValues(alpha: 0.7);
+    final hoverColor = theme.brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 2),
@@ -740,8 +744,8 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
   Widget _buildGarageItem(BuildContext context, String title, {required bool isActive, required Color accentColor, required VoidCallback onTap}) {
     final theme = Theme.of(context);
     final textPrimary = theme.textTheme.bodyLarge?.color ?? Colors.white;
-    final textSecondary = textPrimary.withOpacity(0.7);
-    final hoverColor = theme.brightness == Brightness.dark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05);
+    final textSecondary = textPrimary.withValues(alpha: 0.7);
+    final hoverColor = theme.brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 2),

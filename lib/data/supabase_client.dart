@@ -5,24 +5,30 @@ import '../core/config/env_config.dart';
 /// A singleton manager for the Supabase client.
 class SupabaseClientManager {
   static final SupabaseClientManager _instance = SupabaseClientManager._internal();
-  
+
   factory SupabaseClientManager() {
     return _instance;
   }
-  
+
   SupabaseClientManager._internal();
 
   SupabaseClient? _client;
   bool _isInitialized = false;
 
-  /// Returns the configured Supabase client.
+  /// Returns the configured Supabase client, falling back to a standalone
+  /// client instance if [Supabase.initialize] has not completed.
   SupabaseClient get client {
     if (_client != null) return _client!;
     try {
-      return Supabase.instance.client;
+      _client = Supabase.instance.client;
+      return _client!;
     } catch (e) {
-      debugPrint('[SupabaseClientManager] Warning: accessing uninitialized client: $e');
-      throw StateError('SupabaseClientManager has not been initialized. Call initialize() first.');
+      debugPrint('[SupabaseClientManager] Creating fallback client: $e');
+      _client = SupabaseClient(
+        EnvConfig.supabaseUrl,
+        EnvConfig.supabaseAnonKey,
+      );
+      return _client!;
     }
   }
 
@@ -46,7 +52,13 @@ class SupabaseClientManager {
       try {
         _client = Supabase.instance.client;
         _isInitialized = true;
-      } catch (_) {}
+      } catch (_) {
+        _client = SupabaseClient(
+          EnvConfig.supabaseUrl,
+          EnvConfig.supabaseAnonKey,
+        );
+        _isInitialized = true;
+      }
     }
   }
 }

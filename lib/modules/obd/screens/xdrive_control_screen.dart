@@ -107,51 +107,53 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
                   ),
                 ],
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    description,
-                    style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0D1117),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.white12),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      description,
+                      style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSafetyCheckRow(Icons.speed, 'Vehicle completely stationary (0 km/h)'),
-                        const SizedBox(height: 8),
-                        _buildSafetyCheckRow(Icons.local_parking, 'Gear selector in Park (P) or Neutral (N)'),
-                        const SizedBox(height: 8),
-                        _buildSafetyCheckRow(Icons.pan_tool, 'Emergency brake firmly set'),
-                        const SizedBox(height: 8),
-                        _buildSafetyCheckRow(Icons.power_settings_new, 'Ignition ON / Engine idling'),
-                      ],
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0D1117),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSafetyCheckRow(Icons.speed, 'Vehicle completely stationary (0 km/h)'),
+                          const SizedBox(height: 8),
+                          _buildSafetyCheckRow(Icons.local_parking, 'Gear selector in Park (P) or Neutral (N)'),
+                          const SizedBox(height: 8),
+                          _buildSafetyCheckRow(Icons.pan_tool, 'Emergency brake firmly set'),
+                          const SizedBox(height: 8),
+                          _buildSafetyCheckRow(Icons.power_settings_new, 'Ignition ON / Engine idling'),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 14),
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    value: confirmed,
-                    activeColor: accentColor,
-                    checkColor: Colors.black,
-                    title: const Text(
-                      'I confirm safety conditions are satisfied',
-                      style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                    const SizedBox(height: 14),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      value: confirmed,
+                      activeColor: accentColor,
+                      checkColor: Colors.black,
+                      title: const Text(
+                        'I confirm safety conditions are satisfied',
+                        style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                      onChanged: (val) {
+                        setDialogState(() => confirmed = val ?? false);
+                      },
                     ),
-                    onChanged: (val) {
-                      setDialogState(() => confirmed = val ?? false);
-                    },
-                  ),
-                ],
+                  ],
+                ),
               ),
               actions: [
                 TextButton(

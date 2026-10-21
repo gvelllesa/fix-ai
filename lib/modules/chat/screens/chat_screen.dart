@@ -22,7 +22,7 @@ import '../widgets/typing_indicator.dart';
 class ChatScreen extends StatefulWidget {
   final Map<String, dynamic> carProfile;
 
-  const ChatScreen({Key? key, required this.carProfile}) : super(key: key);
+  const ChatScreen({super.key, required this.carProfile});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -287,9 +287,7 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
           Navigator.pop(context); // Close the drawer
           final faults = payload['faults'] as List<String>?;
           if (faults != null && faults.isNotEmpty) {
-            final prompt = "I performed a full ECU topology scan and found the following vehicle fault codes:\n" +
-                faults.map((f) => "- $f").join("\n") +
-                "\n\nPlease provide an ISTA-level root-cause diagnosis, sensor plausibility check, and recommended repair procedure.";
+            final prompt = "I performed a full ECU topology scan and found the following vehicle fault codes:\n${faults.map((f) => "- $f").join("\n")}\n\nPlease provide an ISTA-level root-cause diagnosis, sensor plausibility check, and recommended repair procedure.";
             _controller.sendMessage(prompt, widget.carProfile);
           } else {
             final code = payload['code'];
@@ -377,15 +375,15 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
       margin: const EdgeInsets.only(left: 4, right: 4, bottom: 16, top: 8),
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withOpacity(0.8), // Glassmorphism
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8), // Glassmorphism
         borderRadius: BorderRadius.circular(32),
         border: Border.all(
-          color: _isFocused ? Theme.of(context).primaryColor.withOpacity(0.5) : Theme.of(context).dividerColor.withOpacity(0.3),
+          color: _isFocused ? Theme.of(context).primaryColor.withValues(alpha: 0.5) : Theme.of(context).dividerColor.withValues(alpha: 0.3),
           width: 1.0,
         ),
         boxShadow: [
           BoxShadow(
-            color: _isFocused ? Theme.of(context).primaryColor.withOpacity(0.15) : Colors.black.withOpacity(0.1),
+            color: _isFocused ? Theme.of(context).primaryColor.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             spreadRadius: 2,
           )
@@ -423,7 +421,7 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
                             minLines: 1,
                             decoration: InputDecoration(
                               hintText: 'Describe symptoms or ask for a procedure...',
-                              hintStyle: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.3), fontSize: 14),
+                              hintStyle: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.3), fontSize: 14),
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                             ),
@@ -562,7 +560,7 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
           padding: const EdgeInsets.only(bottom: 8.0),
           child: Text(
             'FIX AI can make mistakes. Verify critical diagnostic procedures.',
-            style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5), fontSize: 10),
+            style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5), fontSize: 10),
           ),
         ),
       ],
@@ -592,11 +590,11 @@ class LocalPriceBottomSheet extends StatelessWidget {
   final String vehicleModel;
 
   const LocalPriceBottomSheet({
-    Key? key,
+    super.key,
     required this.englishPartName,
     required this.vehicleBrand,
     required this.vehicleModel,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -683,9 +681,9 @@ class MessageBubbleWidget extends StatefulWidget {
   final ChatMessage msg;
 
   const MessageBubbleWidget({
-    Key? key,
+    super.key,
     required this.msg,
-  }) : super(key: key);
+  });
 
   @override
   State<MessageBubbleWidget> createState() => _MessageBubbleWidgetState();
@@ -781,9 +779,9 @@ class _MessageBubbleWidgetState extends State<MessageBubbleWidget> with Automati
           height: 32,
           margin: const EdgeInsets.only(top: 8, right: 12),
           decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor.withOpacity(0.1),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.2)),
+            border: Border.all(color: Theme.of(context).primaryColor.withValues(alpha: 0.2)),
           ),
           child: Center(child: Text('AI', style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold, fontSize: 12))),
         ),
@@ -822,7 +820,7 @@ class _MessageBubbleWidgetState extends State<MessageBubbleWidget> with Automati
                     p: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 16, height: 1.5),
                     a: const TextStyle(color: Colors.blueAccent, decoration: TextDecoration.underline),
                     blockquoteDecoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface.withOpacity(0.8),
+                      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(8),
                       border: const Border(left: BorderSide(color: Colors.blueAccent, width: 4)),
                     ),
@@ -832,7 +830,7 @@ class _MessageBubbleWidgetState extends State<MessageBubbleWidget> with Automati
                       color: Theme.of(context).brightness == Brightness.dark ? Colors.black45 : Colors.black12,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    tableBorder: TableBorder.all(color: Theme.of(context).dividerColor.withOpacity(0.3), width: 1),
+                    tableBorder: TableBorder.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.3), width: 1),
                     tableCellsPadding: const EdgeInsets.all(8),
                   ),
                 ),
@@ -858,10 +856,10 @@ class _MessageBubbleWidgetState extends State<MessageBubbleWidget> with Automati
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent.withOpacity(0.2),
+                        backgroundColor: Colors.blueAccent.withValues(alpha: 0.2),
                         foregroundColor: Colors.blueAccent,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.blueAccent.withOpacity(0.5))),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.blueAccent.withValues(alpha: 0.5))),
                       ),
                       onPressed: () {
                         Navigator.push(context, MaterialPageRoute(builder: (_) => ArScanScreen(partName: detectedPartForAr!)));

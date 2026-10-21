@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer Telemetry Tachometer Arc (Cyan to Neon Green) -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M 28,76 A 34,34 0 1,1 76,28"
+        android:strokeColor="#FF00E5FF"
+        android:strokeLineCap="round"
+        android:strokeWidth="3.5" />
+    <!-- Redline Motorsport Boost Arc (Top-Right to Bottom-Right) -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M 79,31 A 34,34 0 0,1 80,76"
+        android:strokeColor="#FFFF1744"
+        android:strokeLineCap="round"
+        android:strokeWidth="3.5" />
+
+    <!-- ECU Microchip Gold/Cyan Pins -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M44,26 L44,32 M54,24 L54,32 M64,26 L64,32 M44,82 L44,76 M54,84 L54,76 M64,82 L64,76 M26,44 L32,44 M24,54 L32,54 M26,64 L32,64 M82,44 L76,44 M84,54 L76,54 M82,64 L76,64"
+        android:strokeColor="#FF00E676"
+        android:strokeLineCap="round"
+        android:strokeWidth="2.2" />
+
+    <!-- Central Hexagonal ECU Core Shield -->
+    <path
+        android:fillColor="#FF0D1522"
+        android:pathData="M54,30 L75,42 L75,66 L54,78 L33,66 L33,42 Z"
+        android:strokeColor="#FF00E5FF"
+        android:strokeLineJoin="round"
+        android:strokeWidth="2.4" />
+
+    <!-- Stylized 'F' + Lightning Pulse Emblem inside ECU Core -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M43,43 L63,43 M43,43 L43,65 M43,53 L57,53"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="4.2" />
+
+    <!-- Neon Green AI Neural Node & Pulse -->
+    <path
+        android:fillColor="#FF00E676"
+        android:pathData="M62,53 m-3.2,0 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0" />
+    <path
+        android:fillColor="#FFFF1744"
+        android:pathData="M62,63 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0" />
+</vector>

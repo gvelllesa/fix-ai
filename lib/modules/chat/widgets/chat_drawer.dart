@@ -4,7 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 
 class ChatDrawer extends StatelessWidget {
-  const ChatDrawer({Key? key}) : super(key: key);
+  const ChatDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {

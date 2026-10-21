@@ -4,39 +4,233 @@ import '../../../core/config/feature_flags.dart';
 import 'protocols/enet_hsfz_protocol.dart';
 import 'bmw_flash_options.dart';
 
+/// Represents a single 8-byte BMW SGBM-ID entry inside the UDS SVK (DID 0xF101) block
+/// (`UNI_Flash.Program_UDS.GetXweString` / `FxxSpecificHelper.DetectCafdFromSwe`).
+class SvkRecord {
+  final int processClass;
+  final String processClassName;
+  final int sgbmId;
+  final int mainVersion;
+  final int subVersion;
+  final int patchVersion;
+
+  const SvkRecord({
+    required this.processClass,
+    required this.processClassName,
+    required this.sgbmId,
+    required this.mainVersion,
+    required this.subVersion,
+    required this.patchVersion,
+  });
+
+  String get sgbmIdHex => sgbmId.toRadixString(16).toUpperCase().padLeft(8, '0');
+
+  /// Formatted E-Sys / ISTA SGBM identifier (e.g. `BTLD_000019DC_001_019_002`)
+  String get formatted =>
+      '${processClassName}_${sgbmIdHex}_'
+      '${mainVersion.toString().padLeft(3, '0')}_'
+      '${subVersion.toString().padLeft(3, '0')}_'
+      '${patchVersion.toString().padLeft(3, '0')}';
+
+  static String? processClassToName(int cls) {
+    switch (cls) {
+      case 0x01:
+        return 'HWEL';
+      case 0x02:
+        return 'BTLD';
+      case 0x03:
+        return 'FLSL';
+      case 0x05:
+        return 'SWFL';
+      case 0x06:
+        return 'SWFF';
+      case 0x07:
+        return 'SWPF';
+      case 0x08:
+        return 'CAFD';
+      case 0x09:
+        return 'FAFP';
+      case 0x0C:
+        return 'GWTB';
+      case 0x0D:
+        return 'ENTD';
+      case 0x10:
+        return 'IBAD';
+      default:
+        return null;
+    }
+  }
+
+  @override
+  String toString() => formatted;
+}
+
 /// Complete ECU identification snapshot extracted via UDS DIDs
 class EcuIdentity {
   final String vin;
   final String? dmeType;
+  final String? hwel;
   final String? btld;
   final String? swfl;
+  final String? cafd;
   final String? engineCode;
   final int? activeDiagnosticSession;
+  final List<SvkRecord> svkRecords;
 
   const EcuIdentity({
     required this.vin,
     this.dmeType,
+    this.hwel,
     this.btld,
     this.swfl,
+    this.cafd,
     this.engineCode,
     this.activeDiagnosticSession,
+    this.svkRecords = const [],
   });
 
+  /// Parses raw BMW UDS SVK (DID 0xF101) payload into structured 8-byte [SvkRecord] entries.
+  /// Supports:
+  /// - Raw 8-byte SGBM-ID arrays (`[processClass, id0, id1, id2, id3, main, sub, patch]`)
+  /// - 4-byte SVK header (`[version, progDep, countMsb, countLsb]`) + 8-byte entries
+  /// - 17-byte SVK header (4-byte header + 13-byte Fingerprint) + 8-byte entries
+  /// - UDS `0x62 0xF1 0x01` prefix if not yet stripped
+  /// - Printable ASCII SGBM strings (`BTLD_000019DC_001_019_002`)
+  static List<SvkRecord> parseSvkRecords(Uint8List svkPayload) {
+    if (svkPayload.isEmpty) return const [];
+
+    var data = svkPayload;
+    if (data.length >= 3 && data[0] == 0x62 && data[1] == 0xF1 && data[2] == 0x01) {
+      data = Uint8List.sublistView(data, 3);
+    }
+
+    // 1. Check if payload contains ASCII SGBM strings
+    final asciiStr = String.fromCharCodes(data.where((b) => b >= 0x20 && b <= 0x7E));
+    final asciiMatches = RegExp(
+      r'(HWEL|BTLD|FLSL|SWFL|SWFF|CAFD|GWTB|ENTD)_([0-9A-Fa-f]{8})_(\d{3})_(\d{3})_(\d{3})',
+    ).allMatches(asciiStr);
+    if (asciiMatches.isNotEmpty) {
+      final records = <SvkRecord>[];
+      for (final m in asciiMatches) {
+        final clsName = m.group(1)!.toUpperCase();
+        final idVal = int.parse(m.group(2)!, radix: 16);
+        final vMain = int.parse(m.group(3)!);
+        final vSub = int.parse(m.group(4)!);
+        final vPatch = int.parse(m.group(5)!);
+        final clsCode = const {
+              'HWEL': 0x01,
+              'BTLD': 0x02,
+              'FLSL': 0x03,
+              'SWFL': 0x05,
+              'SWFF': 0x06,
+              'CAFD': 0x08,
+              'GWTB': 0x0C,
+              'ENTD': 0x0D,
+            }[clsName] ??
+            0x05;
+        records.add(SvkRecord(
+          processClass: clsCode,
+          processClassName: clsName,
+          sgbmId: idVal,
+          mainVersion: vMain,
+          subVersion: vSub,
+          patchVersion: vPatch,
+        ));
+      }
+      return records;
+    }
+
+    // 2. Binary 8-byte SGBM-ID table parsing
+    // Determine exact header offset using modulo-8 alignment:
+    // - 17-byte header (4B SVK header + 13B Fingerprint): (len - 17) % 8 == 0
+    // - 4-byte header ([version, progDep, countMsb, countLsb]): (len - 4) % 8 == 0
+    // - 0-byte header (raw 8-byte SGBM-ID entries): len % 8 == 0
+    final candidateOffsets = <int>[
+      if (data.length >= 25 && (data.length - 17) % 8 == 0) 17,
+      if (data.length >= 12 && (data.length - 4) % 8 == 0) 4,
+      if (data.length >= 8 && data.length % 8 == 0) 0,
+      4,
+      17,
+      0,
+    ];
+    List<SvkRecord> bestRecords = const [];
+
+    for (final startOffset in candidateOffsets) {
+      if (startOffset >= data.length) continue;
+      final current = <SvkRecord>[];
+      for (int off = startOffset; off + 8 <= data.length; off += 8) {
+        final cls = data[off];
+        final clsName = SvkRecord.processClassToName(cls);
+        if (clsName == null) continue;
+        final id = (data[off + 1] << 24) |
+            (data[off + 2] << 16) |
+            (data[off + 3] << 8) |
+            data[off + 4];
+        if (id == 0 || id == 0xFFFFFFFF) continue;
+        current.add(SvkRecord(
+          processClass: cls,
+          processClassName: clsName,
+          sgbmId: id >>> 0,
+          mainVersion: data[off + 5],
+          subVersion: data[off + 6],
+          patchVersion: data[off + 7],
+        ));
+      }
+      if (current.length > bestRecords.length) {
+        bestRecords = current;
+      }
+      if (bestRecords.isNotEmpty && (data.length - startOffset) % 8 == 0) {
+        break;
+      }
+    }
+
+    return bestRecords;
+  }
+
   /// Parse SVK table from DID 0xF101 response and VIN
-  /// // TODO(verify-on-ecu): verify BMW SVK format and table structure on MEVD17 / MG1
   static EcuIdentity parseFromUds({
     required String vin,
     Uint8List? svkPayload,
     int? activeSession,
   }) {
     String? dme;
+    String? hwel;
     String? btld;
     String? swfl;
+    String? cafd;
     String? engine;
+    var records = const <SvkRecord>[];
 
     if (svkPayload != null && svkPayload.length >= 8) {
-      // TODO(verify-on-ecu): extract SGBM IDs for BTLD and SWFL from raw SVK block
       dme = 'BMW-DME';
+      records = parseSvkRecords(svkPayload);
+      for (final rec in records) {
+        switch (rec.processClassName) {
+          case 'HWEL':
+            hwel ??= rec.formatted;
+            break;
+          case 'BTLD':
+            btld ??= rec.formatted;
+            break;
+          case 'SWFL':
+            swfl ??= rec.formatted;
+            break;
+          case 'CAFD':
+            cafd ??= rec.formatted;
+            break;
+        }
+      }
+
+      // Infer specific DME/TCU architecture from known BMW SGBM IDs if present
+      if (btld != null) {
+        if (btld.contains('000019DC') || btld.contains('000014E1')) {
+          dme = 'MEVD172G';
+        } else if (btld.contains('000030C1') || btld.contains('0000550F')) {
+          dme = 'MG1CS003';
+        } else if (btld.contains('00005D60')) {
+          dme = 'MG1CS201';
+        }
+      }
     }
 
     if (vin.length >= 7) {
@@ -53,10 +247,13 @@ class EcuIdentity {
     return EcuIdentity(
       vin: vin,
       dmeType: dme,
+      hwel: hwel,
       btld: btld,
       swfl: swfl,
+      cafd: cafd,
       engineCode: engine,
       activeDiagnosticSession: activeSession,
+      svkRecords: records,
     );
   }
 }

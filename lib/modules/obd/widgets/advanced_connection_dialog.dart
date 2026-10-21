@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/protocols/enet_hsfz_protocol.dart';
+import '../services/connection_manager.dart';
+import '../services/protocols/kdcan_protocol.dart';
 
 class AdvancedConnectionDialog extends StatefulWidget {
   const AdvancedConnectionDialog({super.key});
@@ -24,6 +25,7 @@ class _AdvancedConnectionDialogState extends State<AdvancedConnectionDialog> {
   final TextEditingController _ipController = TextEditingController(text: '192.168.16.101');
   final TextEditingController _portController = TextEditingController(text: '35000');
   bool _autoDetect = true;
+  DcanMode _selectedDcanMode = DcanMode.dCan;
 
   final List<String> _interfaces = ['USB', 'Bluetooth', 'Wi-Fi', 'ENET'];
   final List<IconData> _interfaceIcons = [
@@ -47,7 +49,7 @@ class _AdvancedConnectionDialogState extends State<AdvancedConnectionDialog> {
       _statusMessage = 'Connecting to vehicle adapter...';
     });
 
-    final protocol = EnetHsfzProtocol();
+    final protocol = ConnectionManager.instance.protocol;
 
     try {
       bool connected = false;
@@ -55,21 +57,43 @@ class _AdvancedConnectionDialogState extends State<AdvancedConnectionDialog> {
       int connectedPort = int.tryParse(_portController.text.trim()) ?? 35000;
       bool isDoip = connectedPort == 13400;
 
-      if (_autoDetect) {
-        setState(() => _statusMessage = 'Sweeping ports (35000, 6801, 13400, 50160)...');
+      if (_selectedIndex == 0) {
+        // USB INPA K+DCAN (FTDI FT232RL) Mode
+        setState(() => _statusMessage = 'Initializing USB FTDI K+DCAN (${_selectedDcanMode.description})...');
+        final kdcan = KdcanProtocol(initialMode: _selectedDcanMode);
+        connected = await ConnectionManager.instance.connectKdcanAdapter(
+          kdcan,
+          mode: _selectedDcanMode,
+        );
+        connectedHost = 'USB-KDCAN-${_selectedDcanMode.name.toUpperCase()}';
+        connectedPort = kdcan.baudrate;
+        isDoip = false;
+        if (!connected) {
+          throw Exception('USB FTDI K+DCAN cable not found or permission denied. Check OTG adapter.');
+        }
+      } else if (_autoDetect) {
+        setState(() => _statusMessage = 'Broadcasting UDP 6811 & sweeping ports (35000, 6801, 13400, 50160)...');
         final target = await protocol.detectAdapter(preferredHost: connectedHost.isNotEmpty ? connectedHost : null);
         if (target != null) {
           connectedHost = target.host;
           connectedPort = target.port;
           isDoip = target.isDoip;
           setState(() => _statusMessage = 'Adapter detected at $connectedHost:$connectedPort! Handshaking...');
-          connected = await protocol.connect(host: connectedHost, port: connectedPort, useDoip: isDoip);
+          connected = await ConnectionManager.instance.connect(
+            host: connectedHost,
+            port: connectedPort,
+            useDoip: isDoip,
+          );
         } else {
           throw Exception('No OBD adapter found on network. Ensure adapter Wi-Fi/Ethernet is connected.');
         }
       } else {
         setState(() => _statusMessage = 'Direct connecting to $connectedHost:$connectedPort...');
-        connected = await protocol.connect(host: connectedHost, port: connectedPort, useDoip: isDoip);
+        connected = await ConnectionManager.instance.connect(
+          host: connectedHost,
+          port: connectedPort,
+          useDoip: isDoip,
+        );
       }
 
       if (!connected) {
@@ -160,20 +184,25 @@ class _AdvancedConnectionDialogState extends State<AdvancedConnectionDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Icon(_interfaceIcons[_selectedIndex], color: neonGreen, size: 24),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Interface: ${_interfaces[_selectedIndex]}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
+                  Flexible(
+                    child: Row(
+                      children: [
+                        Icon(_interfaceIcons[_selectedIndex], color: neonGreen, size: 24),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Interface: ${_interfaces[_selectedIndex]}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white54),
@@ -217,7 +246,44 @@ class _AdvancedConnectionDialogState extends State<AdvancedConnectionDialog> {
               ),
               const SizedBox(height: 18),
 
-              // Network Adapter Configuration
+              // Network or USB K+DCAN Adapter Configuration
+              if (_selectedIndex == 0) ...[
+                const Text(
+                  'USB INPA K+DCAN (FTDI FT232RL) Mode',
+                  style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<DcanMode>(
+                  initialValue: _selectedDcanMode,
+                  dropdownColor: surfaceColor,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  icon: const Icon(Icons.arrow_drop_down, color: neonGreen),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: surfaceColor,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: neonGreen),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                  items: DcanMode.values
+                      .map(
+                        (m) => DropdownMenuItem(
+                          value: m,
+                          child: Text(m.description, overflow: TextOverflow.ellipsis),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => _selectedDcanMode = val);
+                  },
+                ),
+              ] else ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -301,6 +367,7 @@ class _AdvancedConnectionDialogState extends State<AdvancedConnectionDialog> {
                   ),
                 ],
               ),
+              ],
               const SizedBox(height: 16),
 
               // Chassis Selector

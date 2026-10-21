@@ -10,7 +10,7 @@ import '../../live_call/screens/voice_call_screen.dart';
 class SmartProfileScreen extends StatefulWidget {
   final String carProfileId;
 
-  const SmartProfileScreen({Key? key, required this.carProfileId}) : super(key: key);
+  const SmartProfileScreen({super.key, required this.carProfileId});
 
   @override
   State<SmartProfileScreen> createState() => _SmartProfileScreenState();

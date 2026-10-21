@@ -7,7 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_theme.dart';
 
 class VinScannerOverlay extends StatefulWidget {
-  const VinScannerOverlay({Key? key}) : super(key: key);
+  const VinScannerOverlay({super.key});
 
   @override
   State<VinScannerOverlay> createState() => _VinScannerOverlayState();
@@ -216,7 +216,7 @@ class _VinScannerOverlayState extends State<VinScannerOverlay> with SingleTicker
                   height: 100,
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: AppTheme.primaryBlue.withOpacity(0.5 + (_borderPulseController.value * 0.5)),
+                      color: AppTheme.primaryBlue.withValues(alpha: 0.5 + (_borderPulseController.value * 0.5)),
                       width: 3,
                     ),
                     borderRadius: BorderRadius.circular(12),

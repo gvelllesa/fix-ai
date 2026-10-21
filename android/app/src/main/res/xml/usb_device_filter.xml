@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- FTDI FT232RL / FT232RQ (Standard INPA K+DCAN / BimmerGeeks ProTool Cable) -->
+    <usb-device vendor-id="1027" product-id="24577" />
+    <!-- FTDI FT2232C/D/H -->
+    <usb-device vendor-id="1027" product-id="24592" />
+    <!-- FTDI FT232H -->
+    <usb-device vendor-id="1027" product-id="24596" />
+    <!-- FTDI FT230X / FT231X -->
+    <usb-device vendor-id="1027" product-id="24597" />
+</resources>
