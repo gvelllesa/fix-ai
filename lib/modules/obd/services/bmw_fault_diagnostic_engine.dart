@@ -113,10 +113,12 @@ class BmwFaultDiagnosticEngine {
   BmwFaultDiagnosticEngine.forTest();
 
   static const String assetPath = 'assets/offline_db/bmw_fault_knowledge_base.json';
+  static const String standardDtcAssetPath = 'assets/offline_db/standard_dtc_ka.json';
 
   List<String> _texts = const [];
   Map<String, dynamic> _families = const {};
   Map<String, dynamic> _addressIndex = const {};
+  Map<String, BmwGuidedFaultDetail> _standardDtcMap = const {};
   bool _loaded = false;
   Future<void>? _loading;
 
@@ -135,12 +137,23 @@ class BmwFaultDiagnosticEngine {
     final raw = await rootBundle.loadString(assetPath);
     final parsed = await compute(_decode, raw);
     _apply(parsed);
+
+    try {
+      final stdRaw = await rootBundle.loadString(standardDtcAssetPath);
+      final stdParsed = json.decode(stdRaw) as Map<String, dynamic>;
+      _applyStandardDtc(stdParsed);
+    } catch (e) {
+      debugPrint('Optional standard DTC database not loaded: $e');
+    }
   }
 
   static Map<String, dynamic> _decode(String raw) =>
       json.decode(raw) as Map<String, dynamic>;
 
   void loadFromJsonString(String raw) => _apply(_decode(raw));
+
+  void loadStandardDtcFromJsonString(String raw) =>
+      _applyStandardDtc(_decode(raw));
 
   void _apply(Map<String, dynamic> data) {
     _metadata = (data['metadata'] as Map<String, dynamic>?) ?? const {};
@@ -150,12 +163,52 @@ class BmwFaultDiagnosticEngine {
     _loaded = true;
   }
 
-  /// Extracts the 6-hex-digit BMW DTC from the strings produced by the scanner.
+  void _applyStandardDtc(Map<String, dynamic> data) {
+    final codes = (data['codes'] as Map<String, dynamic>?) ?? {};
+    final map = <String, BmwGuidedFaultDetail>{};
+    for (final e in codes.entries) {
+      final val = e.value as Map<String, dynamic>;
+      map[e.key.toUpperCase()] = BmwGuidedFaultDetail(
+        titleEn: val['titleEn'] as String? ?? e.key,
+        explanationKa: val['explanationKa'] as String? ?? '',
+        symptomsKa: (val['symptomsKa'] as List<dynamic>?)?.cast<String>() ?? const [],
+        repairStepsKa: (val['repairStepsKa'] as List<dynamic>?)?.cast<String>() ?? const [],
+        severity: val['severity'] as String? ?? 'MEDIUM',
+        safeToDrive: val['safeToDrive'] as bool? ?? true,
+      );
+    }
+    _standardDtcMap = map;
+  }
+
+  /// Extracts the DTC from strings produced by the scanner.
+  /// Priority:
+  /// 1. Parenthesized BMW hex DTC (e.g. `P2136 (213601) [Confirmed]` -> `213601`)
+  /// 2. Exact 6-hex-digit BMW factory DTC (e.g. `213601`, `0x213601`)
+  /// 3. Standalone SAE standard OBD-II DTC (e.g. `P0300`, `U0100`, `P0420`)
+  /// 4. Exact 4-hex-digit BMW DTC (e.g. `CDA9`, `2EFE`)
   static String? normalizeDtc(String raw) {
-    final paren = RegExp(r'\(([0-9A-Fa-f]{6})\)').firstMatch(raw);
-    if (paren != null) return paren.group(1)!.toUpperCase();
-    final hex = RegExp(r'^\s*(?:0x)?([0-9A-Fa-f]{6})\s*$').firstMatch(raw);
-    if (hex != null) return hex.group(1)!.toUpperCase();
+    // 1. Parenthesized BMW hex DTC
+    final paren6 = RegExp(r'\(([0-9A-Fa-f]{6})\)').firstMatch(raw);
+    if (paren6 != null) return paren6.group(1)!.toUpperCase();
+    final paren4 = RegExp(r'\(([0-9A-Fa-f]{4})\)').firstMatch(raw);
+    if (paren4 != null) return paren4.group(1)!.toUpperCase();
+
+    // 2. Exact 6-hex-digit BMW factory DTC
+    final hex6 = RegExp(r'^\s*(?:0x)?([0-9A-Fa-f]{6})\s*$').firstMatch(raw);
+    if (hex6 != null) return hex6.group(1)!.toUpperCase();
+
+    // 3. Standalone SAE standard OBD-II DTC
+    final saeStandalone = RegExp(r'^\s*([PUBCA][0-9A-Fa-f]{4})\s*$').firstMatch(raw);
+    if (saeStandalone != null) return saeStandalone.group(1)!.toUpperCase();
+
+    // 4. Exact 4-hex-digit BMW DTC
+    final hex4 = RegExp(r'^\s*(?:0x)?([0-9A-Fa-f]{4})\s*$').firstMatch(raw);
+    if (hex4 != null) return hex4.group(1)!.toUpperCase();
+
+    // 5. Fallback SAE match within string if no hex code present
+    final saeMatch = RegExp(r'\b([PUBCA][0-9A-Fa-f]{4})\b').firstMatch(raw);
+    if (saeMatch != null) return saeMatch.group(1)!.toUpperCase();
+
     return null;
   }
 
@@ -201,8 +254,16 @@ class BmwFaultDiagnosticEngine {
       }
     }
 
-    // Check high-precision guided knowledge base
+    // Check high-precision guided knowledge base & standard OBD-II dictionary
     final guided = _findGuidedDetail(ecuAddress, code);
+
+    if (found.isEmpty && guided != null) {
+      found.add(FactoryFaultText(
+        text: guided.titleEn,
+        variants: const ['SAE_STANDARD_OBD2'],
+        family: 'STANDARD_OBD',
+      ));
+    }
 
     final titleEn = guided?.titleEn ?? _synthesizeEnglishTitle(found);
     final explanationKa = guided?.explanationKa ?? _synthesizeGeorgianExplanation(found, ecuNameFromKis);
@@ -227,11 +288,11 @@ class BmwFaultDiagnosticEngine {
     );
   }
 
-  /// High-precision guided database for common BMW fault codes.
+  /// High-precision guided database for common BMW fault codes & standard OBD-II codes.
   /// Free from any third-party app or tool brand names.
-  static BmwGuidedFaultDetail? _findGuidedDetail(int ecuAddress, String code) {
+  BmwGuidedFaultDetail? _findGuidedDetail(int ecuAddress, String code) {
     final key = '0x${ecuAddress.toRadixString(16).toUpperCase().padLeft(2, '0')}:$code';
-    return _guidedKnowledge[key];
+    return _guidedKnowledge[key] ?? _standardDtcMap[code];
   }
 
   static const Map<String, BmwGuidedFaultDetail> _guidedKnowledge = {

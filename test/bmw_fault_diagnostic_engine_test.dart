@@ -10,6 +10,11 @@ void main() {
     final f = File('assets/offline_db/bmw_fault_knowledge_base.json');
     expect(f.existsSync(), isTrue, reason: 'run scripts/offline_etl/build_bmw_fault_kb.py');
     engine = BmwFaultDiagnosticEngine.forTest()..loadFromJsonString(f.readAsStringSync());
+
+    final stdFile = File('assets/offline_db/standard_dtc_ka.json');
+    if (stdFile.existsSync()) {
+      engine.loadStandardDtcFromJsonString(stdFile.readAsStringSync());
+    }
   });
 
   group('DTC normalisation', () {
@@ -19,6 +24,8 @@ void main() {
     test('plain / 0x-prefixed 6 hex', () {
       expect(BmwFaultDiagnosticEngine.normalizeDtc('030215'), '030215');
       expect(BmwFaultDiagnosticEngine.normalizeDtc('0x030215'), '030215');
+      expect(BmwFaultDiagnosticEngine.normalizeDtc('P0300'), 'P0300');
+      expect(BmwFaultDiagnosticEngine.normalizeDtc('U0100'), 'U0100');
       expect(BmwFaultDiagnosticEngine.normalizeDtc('xyz'), isNull);
     });
   });
@@ -87,6 +94,17 @@ void main() {
       sw.stop();
       expect(sw.elapsedMilliseconds / 100, lessThan(5));
     });
+  });
+
+  test('Standard SAE OBD-II DTC resolves to Georgian explanation and repair steps', () {
+    final r = engine.explain(0x12, 'P0300');
+    expect(r.isKnown, isTrue);
+    expect(r.titleEn.contains('Misfire'), isTrue);
+    expect(r.explanationKa.contains('აალება'), isTrue);
+    expect(r.symptomsKa.isNotEmpty, isTrue);
+    expect(r.repairStepsKa.isNotEmpty, isTrue);
+    expect(r.severity, 'CRITICAL');
+    expect(r.safeToDrive, isFalse);
   });
 
   test('knowledge base metadata sanity', () {
