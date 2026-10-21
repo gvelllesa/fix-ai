@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/animations/fix_ai_motion.dart';
+import '../../../core/theme/fix_ai_tokens.dart';
 import '../../obd/screens/coding_screen.dart';
 import '../../obd/screens/ecu_scan_screen.dart';
 import '../../obd/screens/flash_tuning_screen.dart';
@@ -12,7 +14,7 @@ import '../../obd/widgets/advanced_connection_dialog.dart';
 import '../widgets/fix_ai_drawer.dart';
 
 /// Primary landing screen for FIX AI: professional BMW diagnostic and tuning hub.
-/// Completely replaces the legacy chat with direct automotive workshop tools.
+/// Designed with Dark-Tech aesthetics, fluid staggered motion, and tactile feedback.
 class DashboardScreen extends StatefulWidget {
   final Map<String, dynamic>? carProfile;
 
@@ -23,10 +25,6 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  static const Color neonGreen = Color(0xFF1DB954);
-  static const Color darkCard = Color(0xFF161B22);
-  static const Color borderLight = Color(0xFF262C36);
-
   late Map<String, dynamic> _carProfile;
   final ConnectionManager _conn = ConnectionManager.instance;
 
@@ -58,7 +56,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _openScreen(Widget screen) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => screen),
+      SmoothSlidePageRoute(page: screen),
     ).then((_) {
       if (mounted) setState(() {});
     });
@@ -71,7 +69,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final vehicleChassis = '${_carProfile['chassis'] ?? 'F26'} • ${_carProfile['engine'] ?? 'N20'} • ${_carProfile['year'] ?? '2016'}';
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1117),
+      backgroundColor: FixAiTokens.canvas,
       drawer: FixAiDrawer(
         currentCarId: _carProfile['id']?.toString(),
         onVehicleSelected: (car) {
@@ -79,38 +77,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
       ),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF161B22),
+        backgroundColor: FixAiTokens.surfacePrimary,
         elevation: 0,
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: neonGreen.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
+                color: FixAiTokens.accentCyan.withValues(alpha: 0.12),
+                borderRadius: FixAiTokens.borderRadiusSm,
+                border: Border.all(
+                  color: FixAiTokens.accentCyan.withValues(alpha: 0.25),
+                  width: 1,
+                ),
               ),
-              child: const Icon(Icons.speed, color: neonGreen, size: 20),
+              child: const Icon(Icons.speed, color: FixAiTokens.accentCyan, size: 18),
             ),
             const SizedBox(width: 10),
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'FIX AI',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: FixAiTokens.textPrimary,
                     fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w800,
                     letterSpacing: 1.2,
                   ),
                 ),
                 Text(
                   'FACTORY DIAGNOSTICS & TUNING',
                   style: TextStyle(
-                    color: Colors.white38,
+                    color: FixAiTokens.textMuted,
                     fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.8,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.9,
                   ),
                 ),
               ],
@@ -118,40 +120,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
-          // Connection Pill Button
+          // Connection Pill Button with Pulse Indicator
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: InkWell(
+            child: BouncyPressable(
               onTap: _showConnectionModal,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(FixAiTokens.radiusPill),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
-                  color: isConnected ? neonGreen.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(20),
+                  color: isConnected
+                      ? FixAiTokens.accentEmerald.withValues(alpha: 0.12)
+                      : FixAiTokens.surfaceHighlight,
+                  borderRadius: BorderRadius.circular(FixAiTokens.radiusPill),
                   border: Border.all(
-                    color: isConnected ? neonGreen : Colors.white24,
+                    color: isConnected
+                        ? FixAiTokens.accentEmerald.withValues(alpha: 0.5)
+                        : FixAiTokens.borderSubtle,
                     width: 1,
                   ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isConnected ? neonGreen : Colors.white38,
+                    PulsingStatusGlow(
+                      isPulsing: isConnected,
+                      glowColor: FixAiTokens.accentEmerald,
+                      maxRadius: 6,
+                      child: Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isConnected ? FixAiTokens.accentEmerald : FixAiTokens.textMuted,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 7),
                     Text(
                       isConnected ? 'ENET CONNECTED' : 'OBD CONNECT',
                       style: TextStyle(
-                        color: isConnected ? neonGreen : Colors.white70,
+                        color: isConnected ? FixAiTokens.accentEmerald : FixAiTokens.textSecondary,
                         fontSize: 11,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.4,
                       ),
                     ),
                   ],
@@ -162,173 +174,238 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         children: [
-          // Vehicle Status Card
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: darkCard,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: borderLight),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          vehicleTitle,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 19,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          vehicleChassis,
-                          style: const TextStyle(
-                            color: Colors.white60,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.blueAccent.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.directions_car, color: Colors.blueAccent, size: 28),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                const Divider(color: Colors.white10, height: 1),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _buildStatusChip(
-                      icon: Icons.battery_charging_full,
-                      label: '12.4 V',
-                      sub: 'KL30 Voltage',
-                      color: neonGreen,
-                    ),
-                    const SizedBox(width: 12),
-                    _buildStatusChip(
-                      icon: Icons.power,
-                      label: isConnected ? 'Terminal 15 ON' : 'Ignition OFF',
-                      sub: 'Bus KL15 State',
-                      color: isConnected ? Colors.cyanAccent : Colors.white38,
-                    ),
-                    const SizedBox(width: 12),
-                    _buildStatusChip(
-                      icon: Icons.verified_user_outlined,
-                      label: 'Offline DB',
-                      sub: '200k+ Codes Ready',
-                      color: Colors.orangeAccent,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-
-          // Primary Action: Large Diagnostic Hero Card
-          InkWell(
-            onTap: () => _openScreen(EcuScanScreen(activeProtocol: _conn.protocol)),
-            borderRadius: BorderRadius.circular(16),
+          // 1. Vehicle Status HUD Card (Staggered 0)
+          StaggeredSlideFade(
+            index: 0,
             child: Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    neonGreen.withValues(alpha: 0.22),
-                    const Color(0xFF161B22),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: neonGreen.withValues(alpha: 0.6), width: 1.4),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: neonGreen,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Center(
-                      child: Icon(Icons.health_and_safety, color: Colors.black, size: 30),
-                    ),
+                color: FixAiTokens.surfacePrimary,
+                borderRadius: FixAiTokens.borderRadiusLg,
+                border: Border.all(color: FixAiTokens.borderSubtle),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'FULL VEHICLE DIAGNOSTICS',
+                              vehicleTitle,
+                              style: FixAiTokens.titleLarge,
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              vehicleChassis,
                               style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
+                                color: FixAiTokens.textSecondary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Scan all 32 modules with authentic factory definitions, vehicle symptoms, and step-by-step repair guides.',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                            height: 1.3,
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: FixAiTokens.accentBlue.withValues(alpha: 0.12),
+                          borderRadius: FixAiTokens.borderRadiusMd,
+                          border: Border.all(
+                            color: FixAiTokens.accentBlue.withValues(alpha: 0.25),
                           ),
                         ),
+                        child: const Icon(
+                          Icons.directions_car_filled,
+                          color: FixAiTokens.accentBlue,
+                          size: 26,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  const Divider(color: FixAiTokens.borderSubtle, height: 1),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _buildStatusChip(
+                        icon: Icons.battery_charging_full_rounded,
+                        label: '12.4 V',
+                        sub: 'KL30 Battery',
+                        color: FixAiTokens.accentEmerald,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildStatusChip(
+                        icon: Icons.power_settings_new_rounded,
+                        label: isConnected ? 'KL15 Active' : 'Ignition OFF',
+                        sub: 'Bus Terminal',
+                        color: isConnected ? FixAiTokens.accentCyan : FixAiTokens.textMuted,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildStatusChip(
+                        icon: Icons.offline_bolt_rounded,
+                        label: '200k+ Codes',
+                        sub: 'Offline DB',
+                        color: FixAiTokens.accentAmber,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // 2. Primary Hero Diagnostic Scanner Card (Staggered 1 - One Thing Leads)
+          StaggeredSlideFade(
+            index: 1,
+            child: ShimmerGlowBorder(
+              borderRadius: FixAiTokens.borderRadiusLg,
+              primaryColor: FixAiTokens.accentEmerald,
+              secondaryColor: FixAiTokens.accentCyan,
+              borderWidth: 1.5,
+              child: BouncyPressable(
+                onTap: () => _openScreen(EcuScanScreen(activeProtocol: _conn.protocol)),
+                borderRadius: FixAiTokens.borderRadiusLg,
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        FixAiTokens.surfaceElevated,
+                        FixAiTokens.surfacePrimary,
                       ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward_ios, color: neonGreen, size: 16),
-                ],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [FixAiTokens.accentEmerald, FixAiTokens.accentCyan],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: FixAiTokens.borderRadiusMd,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: FixAiTokens.accentEmerald.withValues(alpha: 0.35),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.health_and_safety_rounded,
+                                color: Color(0xFF090C10),
+                                size: 28,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      'FULL VEHICLE DIAGNOSTICS',
+                                      style: TextStyle(
+                                        color: FixAiTokens.textPrimary,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.6,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: FixAiTokens.accentEmerald.withValues(alpha: 0.18),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Text(
+                                        'FAST',
+                                        style: TextStyle(
+                                          color: FixAiTokens.accentEmerald,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  'Scan all 32 ECUs with authentic factory definitions, freeze frames, and clear step-by-step repair guides.',
+                                  style: TextStyle(
+                                    color: FixAiTokens.textSecondary,
+                                    fontSize: 12,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: FixAiTokens.accentEmerald,
+                            size: 16,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
           const SizedBox(height: 24),
 
-          // Section Title
-          const Row(
-            children: [
-              Icon(Icons.widgets_outlined, color: Colors.white54, size: 18),
-              SizedBox(width: 8),
-              Text(
-                'WORKSHOP OPERATIONS & CONTROL',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.8,
+          // 3. Section Title (Staggered 2)
+          StaggeredSlideFade(
+            index: 2,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.dashboard_customize_rounded,
+                  color: FixAiTokens.textSecondary,
+                  size: 16,
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Text(
+                  'WORKSHOP OPERATIONS & CONTROL',
+                  style: FixAiTokens.sectionHeader,
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
 
-          // 2-Column Grid of Dedicated Modules
+          // 4. Staggered Grid of Dedicated Modules (Staggered 3-8)
           GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
@@ -337,47 +414,65 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisSpacing: 12,
             childAspectRatio: 1.25,
             children: [
-              _buildFeatureCard(
-                title: 'Service Functions',
-                desc: 'Battery registration, brake bleed, VTG calibration, adaptations',
-                icon: Icons.build_circle,
-                accentColor: Colors.orangeAccent,
-                onTap: () => _openScreen(const ServiceFunctionsScreen()),
+              StaggeredSlideFade(
+                index: 3,
+                child: _buildFeatureCard(
+                  title: 'Service Routines',
+                  desc: 'Battery register, brake bleed, adaptations',
+                  icon: Icons.home_repair_service_rounded,
+                  accentColor: FixAiTokens.accentAmber,
+                  onTap: () => _openScreen(const ServiceFunctionsScreen()),
+                ),
               ),
-              _buildFeatureCard(
-                title: 'Live Telemetry',
-                desc: 'Real-time high-speed UDS gauges, boost, AFR, oil temp',
-                icon: Icons.speed,
-                accentColor: Colors.cyanAccent,
-                onTap: () => _openScreen(LiveTelemetryScreen(activeProtocol: _conn.protocol)),
+              StaggeredSlideFade(
+                index: 4,
+                child: _buildFeatureCard(
+                  title: 'Live Telemetry',
+                  desc: 'High-speed UDS gauges, boost, AFR, temps',
+                  icon: Icons.speed_rounded,
+                  accentColor: FixAiTokens.accentCyan,
+                  onTap: () => _openScreen(LiveTelemetryScreen(activeProtocol: _conn.protocol)),
+                ),
               ),
-              _buildFeatureCard(
-                title: 'Factory Coding',
-                desc: 'SALAPA vehicle orders, FDL cheat codes, module backups',
-                icon: Icons.code,
-                accentColor: Colors.purpleAccent,
-                onTap: () => _openScreen(const CodingScreen()),
+              StaggeredSlideFade(
+                index: 5,
+                child: _buildFeatureCard(
+                  title: 'Factory Coding',
+                  desc: 'SALAPA orders, FDL cheat codes, backups',
+                  icon: Icons.terminal_rounded,
+                  accentColor: FixAiTokens.accentPurple,
+                  onTap: () => _openScreen(const CodingScreen()),
+                ),
               ),
-              _buildFeatureCard(
-                title: 'Flash & Calibration',
-                desc: 'Custom ROM features, TCU transmission calibrations',
-                icon: Icons.bolt,
-                accentColor: Colors.amberAccent,
-                onTap: () => _openScreen(FlashTuningScreen(activeProtocol: _conn.protocol)),
+              StaggeredSlideFade(
+                index: 6,
+                child: _buildFeatureCard(
+                  title: 'Flash & Calibrate',
+                  desc: 'Custom ROM features, TCU transmissions',
+                  icon: Icons.bolt_rounded,
+                  accentColor: FixAiTokens.accentAmber,
+                  onTap: () => _openScreen(FlashTuningScreen(activeProtocol: _conn.protocol)),
+                ),
               ),
-              _buildFeatureCard(
-                title: 'xDrive AWD Control',
-                desc: 'Dynamic AWD torque split, 2WD RWD switch, VTG telemetry',
-                icon: Icons.all_inclusive,
-                accentColor: Colors.tealAccent,
-                onTap: () => _openScreen(const XDriveControlScreen()),
+              StaggeredSlideFade(
+                index: 7,
+                child: _buildFeatureCard(
+                  title: 'xDrive AWD Control',
+                  desc: 'Dynamic AWD torque split, 100% RWD drift',
+                  icon: Icons.alt_route_rounded,
+                  accentColor: FixAiTokens.accentCyan,
+                  onTap: () => _openScreen(const XDriveControlScreen()),
+                ),
               ),
-              _buildFeatureCard(
-                title: 'ECU Topology Tree',
-                desc: 'Inspect all 32 ECUs, identification DIDs, module reset',
-                icon: Icons.developer_board,
-                accentColor: neonGreen,
-                onTap: () => _openScreen(EcuScanScreen(activeProtocol: _conn.protocol)),
+              StaggeredSlideFade(
+                index: 8,
+                child: _buildFeatureCard(
+                  title: 'ECU Topology Tree',
+                  desc: 'Scan 32 ECUs, module identification DIDs',
+                  icon: Icons.hub_rounded,
+                  accentColor: FixAiTokens.accentEmerald,
+                  onTap: () => _openScreen(EcuScanScreen(activeProtocol: _conn.protocol)),
+                ),
               ),
             ],
           ),
@@ -397,9 +492,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.black26,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+          color: FixAiTokens.surfaceElevated,
+          borderRadius: FixAiTokens.borderRadiusSm,
+          border: Border.all(color: FixAiTokens.borderSubtle),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -416,7 +511,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     style: TextStyle(
                       color: color,
                       fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
@@ -427,7 +522,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               sub,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white38, fontSize: 9),
+              style: TextStyle(color: FixAiTokens.textMuted, fontSize: 9),
             ),
           ],
         ),
@@ -442,15 +537,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required Color accentColor,
     required VoidCallback onTap,
   }) {
-    return InkWell(
+    return BouncyPressable(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: FixAiTokens.borderRadiusMd,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: darkCard,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: borderLight),
+          color: FixAiTokens.surfacePrimary,
+          borderRadius: FixAiTokens.borderRadiusMd,
+          border: Border.all(color: FixAiTokens.borderSubtle),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -458,8 +553,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
+                color: accentColor.withValues(alpha: 0.12),
+                borderRadius: FixAiTokens.borderRadiusSm,
+                border: Border.all(
+                  color: accentColor.withValues(alpha: 0.25),
+                  width: 1,
+                ),
               ),
               child: Icon(icon, color: accentColor, size: 20),
             ),
@@ -468,10 +567,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
+              style: TextStyle(
+                color: FixAiTokens.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 3),
@@ -479,8 +578,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               desc,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white54,
+              style: TextStyle(
+                color: FixAiTokens.textSecondary,
                 fontSize: 10,
                 height: 1.25,
               ),

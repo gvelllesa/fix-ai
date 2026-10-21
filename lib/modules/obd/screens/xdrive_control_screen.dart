@@ -1,5 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../../../core/animations/fix_ai_motion.dart';
+import '../../../core/theme/fix_ai_tokens.dart';
 import '../services/bmw_vtg_manager.dart';
 import '../services/protocols/enet_hsfz_protocol.dart';
 
@@ -53,9 +57,6 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
         _isConnected = connected;
         _statusText = connected ? 'Connected to VTG [0x19]' : 'VTG Offline (Check ENET)';
       });
-      if (connected) {
-        _vtgManager.startTelemetryPolling();
-      }
     }
   }
 
@@ -79,10 +80,10 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              backgroundColor: const Color(0xFF161B22),
+              backgroundColor: FixAiTokens.surfaceElevated,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: accentColor.withValues(alpha: 0.8), width: 1.5),
+                borderRadius: FixAiTokens.borderRadiusLg,
+                side: BorderSide(color: accentColor.withValues(alpha: 0.6), width: 1.5),
               ),
               title: Row(
                 children: [
@@ -92,85 +93,74 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
                       color: accentColor.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.warning_amber_rounded, color: accentColor, size: 28),
+                    child: Icon(Icons.warning_amber_rounded, color: accentColor, size: 26),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
+                      style: TextStyle(
+                        color: FixAiTokens.textPrimary,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                 ],
               ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      description,
-                      style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    description,
+                    style: TextStyle(color: FixAiTokens.textSecondary, fontSize: 13, height: 1.4),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: FixAiTokens.surfacePrimary,
+                      borderRadius: FixAiTokens.borderRadiusSm,
+                      border: Border.all(color: FixAiTokens.borderSubtle),
                     ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0D1117),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.white12),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildSafetyCheckRow(Icons.speed, 'Vehicle completely stationary (0 km/h)'),
-                          const SizedBox(height: 8),
-                          _buildSafetyCheckRow(Icons.local_parking, 'Gear selector in Park (P) or Neutral (N)'),
-                          const SizedBox(height: 8),
-                          _buildSafetyCheckRow(Icons.pan_tool, 'Emergency brake firmly set'),
-                          const SizedBox(height: 8),
-                          _buildSafetyCheckRow(Icons.power_settings_new, 'Ignition ON / Engine idling'),
-                        ],
-                      ),
+                    child: Row(
+                      children: [
+                        Checkbox(
+                          value: confirmed,
+                          activeColor: accentColor,
+                          checkColor: Colors.black,
+                          onChanged: (val) {
+                            setDialogState(() {
+                              confirmed = val ?? false;
+                            });
+                          },
+                        ),
+                        Expanded(
+                          child: Text(
+                            'მე ვაცნობიერებ რისკებს და ვადასტურებ რეჟიმის შეცვლას',
+                            style: TextStyle(color: FixAiTokens.textPrimary, fontSize: 11),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 14),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                      value: confirmed,
-                      activeColor: accentColor,
-                      checkColor: Colors.black,
-                      title: const Text(
-                        'I confirm safety conditions are satisfied',
-                        style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                      onChanged: (val) {
-                        setDialogState(() => confirmed = val ?? false);
-                      },
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
+                  child: Text('გაუქმება', style: TextStyle(color: FixAiTokens.textMuted)),
                 ),
                 ElevatedButton(
                   onPressed: confirmed ? () => Navigator.pop(ctx, true) : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: accentColor,
-                    disabledBackgroundColor: Colors.white10,
                     foregroundColor: Colors.black,
-                    disabledForegroundColor: Colors.white24,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    disabledBackgroundColor: FixAiTokens.surfaceHighlight,
+                    shape: RoundedRectangleBorder(borderRadius: FixAiTokens.borderRadiusSm),
                   ),
-                  child: const Text('Proceed', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text('დადასტურება', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             );
@@ -181,18 +171,6 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
     return result ?? false;
   }
 
-  Widget _buildSafetyCheckRow(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: Colors.greenAccent),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(text, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-        ),
-      ],
-    );
-  }
-
   Future<void> _handleModeSelection(XDriveMode mode) async {
     if (_isActionRunning) return;
 
@@ -201,7 +179,7 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
         title: 'Switch to 100% RWD Mode',
         description:
             'VTG multi-disc clutch will be completely disengaged (0% front torque). Front drive axle will be uncoupled. Vehicle will behave as pure rear-wheel drive.',
-        accentColor: Colors.deepOrangeAccent,
+        accentColor: FixAiTokens.accentAmber,
       );
       if (!proceed) return;
     }
@@ -238,7 +216,7 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.info_outline, color: Colors.cyanAccent),
+                const Icon(Icons.info_outline_rounded, color: FixAiTokens.accentCyan),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -248,7 +226,7 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
                 ),
               ],
             ),
-            backgroundColor: const Color(0xFF161B22),
+            backgroundColor: FixAiTokens.surfaceElevated,
             duration: const Duration(seconds: 3),
             behavior: SnackBarBehavior.floating,
           ),
@@ -281,9 +259,9 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            success ? '✓ ${mode.title} successfully configured on VTG' : '✗ Failed to switch mode on ECU 0x19',
+            success ? '${mode.title} successfully configured on VTG' : 'Failed to switch mode on ECU 0x19',
           ),
-          backgroundColor: success ? Colors.green.shade800 : Colors.red.shade900,
+          backgroundColor: success ? FixAiTokens.accentEmerald : FixAiTokens.accentRose,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -298,23 +276,26 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          backgroundColor: const Color(0xFF161B22),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          backgroundColor: FixAiTokens.surfaceElevated,
+          shape: RoundedRectangleBorder(borderRadius: FixAiTokens.borderRadiusMd),
           title: const Row(
             children: [
-              Icon(Icons.link_off, color: Colors.orangeAccent),
+              Icon(Icons.link_off_rounded, color: FixAiTokens.accentAmber),
               SizedBox(width: 10),
-              Text('ავტომობილი გამორთულია', style: TextStyle(color: Colors.white, fontSize: 16)),
+              Text('ავტომობილი გამორთულია', style: TextStyle(color: FixAiTokens.textPrimary, fontSize: 16)),
             ],
           ),
-          content: const Text(
+          content: Text(
             'VTG გადაბმულობის კალიბრაციისთვის (Routine 0xA101) საჭიროა ENET/OBD ადაპტერის შეერთება და აალების ჩართვა (Ignition ON).',
-            style: TextStyle(color: Colors.white70, fontSize: 13),
+            style: TextStyle(color: FixAiTokens.textSecondary, fontSize: 13),
           ),
           actions: [
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.cyanAccent, foregroundColor: Colors.black),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: FixAiTokens.accentCyan,
+                foregroundColor: Colors.black,
+              ),
               child: const Text('გასაგებია', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
@@ -327,7 +308,7 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
       title: 'Transfer Case Clutch Calibration',
       description:
           'Executes UDS RoutineControl 0x31 0x01 A1 01 to reset friction plate wear adaptations (STAT_WORKCLUTCH_WERT) and relearn mechanical clutch zero-point.',
-      accentColor: Colors.cyanAccent,
+      accentColor: FixAiTokens.accentCyan,
     );
     if (!proceed) return;
 
@@ -347,27 +328,27 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          backgroundColor: const Color(0xFF161B22),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          backgroundColor: FixAiTokens.surfaceElevated,
+          shape: RoundedRectangleBorder(borderRadius: FixAiTokens.borderRadiusMd),
           title: Row(
             children: [
               Icon(
-                result.success ? Icons.check_circle : Icons.error,
-                color: result.success ? Colors.greenAccent : Colors.redAccent,
+                result.success ? Icons.check_circle_rounded : Icons.error_rounded,
+                color: result.success ? FixAiTokens.accentEmerald : FixAiTokens.accentRose,
               ),
               const SizedBox(width: 10),
               Text(
                 result.success ? 'Calibration Successful' : 'Calibration Failed',
-                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(color: FixAiTokens.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ],
           ),
-          content: Text(result.message, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+          content: Text(result.message, style: TextStyle(color: FixAiTokens.textSecondary, fontSize: 13)),
           actions: [
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx),
               style: ElevatedButton.styleFrom(
-                backgroundColor: result.success ? Colors.greenAccent : Colors.redAccent,
+                backgroundColor: result.success ? FixAiTokens.accentEmerald : FixAiTokens.accentRose,
                 foregroundColor: Colors.black,
               ),
               child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -381,19 +362,26 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1117),
+      backgroundColor: FixAiTokens.canvas,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF161B22),
+        backgroundColor: FixAiTokens.surfacePrimary,
         elevation: 0,
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.all_inclusive, color: Colors.cyanAccent, size: 22),
-            SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: FixAiTokens.accentCyan.withValues(alpha: 0.12),
+                borderRadius: FixAiTokens.borderRadiusSm,
+              ),
+              child: const Icon(Icons.all_inclusive_rounded, color: FixAiTokens.accentCyan, size: 20),
+            ),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 'xDrive Mode Control',
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                style: FixAiTokens.titleMedium,
               ),
             ),
           ],
@@ -401,8 +389,8 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              _vtgManager.isPollingTelemetry ? Icons.sensors : Icons.sensors_off,
-              color: _vtgManager.isPollingTelemetry ? Colors.greenAccent : Colors.white38,
+              _vtgManager.isPollingTelemetry ? Icons.sensors_rounded : Icons.sensors_off_rounded,
+              color: _vtgManager.isPollingTelemetry ? FixAiTokens.accentEmerald : FixAiTokens.textMuted,
             ),
             tooltip: _vtgManager.isPollingTelemetry ? 'Pause Telemetry' : 'Resume Telemetry',
             onPressed: () {
@@ -416,64 +404,98 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white70),
+            icon: const Icon(Icons.refresh_rounded, color: FixAiTokens.textSecondary),
             tooltip: 'Re-ping VTG',
             onPressed: _initConnection,
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildStatusHeader(),
+            // Status Header
+            StaggeredSlideFade(
+              index: 0,
+              child: _buildStatusHeader(),
+            ),
             const SizedBox(height: 16),
-            _buildTorqueSplitVisualizer(),
+
+            // Fluid Animated Torque Split Visualizer
+            StaggeredSlideFade(
+              index: 1,
+              child: _buildTorqueSplitVisualizer(),
+            ),
             const SizedBox(height: 16),
-            _buildTelemetryGrid(),
+
+            // Telemetry Grid
+            StaggeredSlideFade(
+              index: 2,
+              child: _buildTelemetryGrid(),
+            ),
             const SizedBox(height: 22),
-            const Text(
-              'OPERATING MODE PRESETS',
-              style: TextStyle(
-                color: Colors.white54,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
+
+            // Presets Header
+            StaggeredSlideFade(
+              index: 3,
+              child: Text(
+                'OPERATING MODE PRESETS',
+                style: FixAiTokens.sectionHeader,
               ),
             ),
             const SizedBox(height: 10),
-            _buildModeCard(
-              mode: XDriveMode.rwd,
-              icon: Icons.electric_bolt,
-              color: Colors.deepOrangeAccent,
-              badgeText: '0% FRONT / 100% REAR',
+
+            // Mode Cards
+            StaggeredSlideFade(
+              index: 4,
+              child: _buildModeCard(
+                mode: XDriveMode.rwd,
+                icon: Icons.electric_bolt_rounded,
+                color: FixAiTokens.accentAmber,
+                badgeText: '0% FRONT / 100% REAR',
+              ),
             ),
             const SizedBox(height: 10),
-            _buildModeCard(
-              mode: XDriveMode.stockAwd,
-              icon: Icons.tune,
-              color: Colors.blueAccent,
-              badgeText: '40% FRONT / 60% REAR OEM',
+            StaggeredSlideFade(
+              index: 5,
+              child: _buildModeCard(
+                mode: XDriveMode.stockAwd,
+                icon: Icons.tune_rounded,
+                color: FixAiTokens.accentBlue,
+                badgeText: '40% FRONT / 60% REAR OEM',
+              ),
             ),
             const SizedBox(height: 10),
-            _buildModeCard(
-              mode: XDriveMode.sportAwd,
-              icon: Icons.sports_motorsports,
-              color: Colors.purpleAccent,
-              badgeText: '30% FRONT / 70% REAR',
+            StaggeredSlideFade(
+              index: 6,
+              child: _buildModeCard(
+                mode: XDriveMode.sportAwd,
+                icon: Icons.sports_motorsports_rounded,
+                color: FixAiTokens.accentPurple,
+                badgeText: '30% FRONT / 70% REAR',
+              ),
             ),
             const SizedBox(height: 10),
-            _buildModeCard(
-              mode: XDriveMode.snowAwd,
-              icon: Icons.ac_unit,
-              color: Colors.tealAccent,
-              badgeText: '50% FRONT / 50% REAR LOCKED',
+            StaggeredSlideFade(
+              index: 7,
+              child: _buildModeCard(
+                mode: XDriveMode.snowAwd,
+                icon: Icons.ac_unit_rounded,
+                color: FixAiTokens.accentEmerald,
+                badgeText: '50% FRONT / 50% REAR LOCKED',
+              ),
             ),
             const SizedBox(height: 10),
-            _buildCustomModeCard(),
-            const SizedBox(height: 24),
-            _buildClutchCalibrationCard(),
+            StaggeredSlideFade(
+              index: 8,
+              child: _buildCustomModeCard(),
+            ),
+            const SizedBox(height: 20),
+            StaggeredSlideFade(
+              index: 9,
+              child: _buildClutchCalibrationCard(),
+            ),
             const SizedBox(height: 30),
           ],
         ),
@@ -485,25 +507,23 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF161B22),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
+        color: FixAiTokens.surfacePrimary,
+        borderRadius: FixAiTokens.borderRadiusMd,
+        border: Border.all(color: FixAiTokens.borderSubtle),
       ),
       child: Row(
         children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: _isConnected ? Colors.greenAccent : Colors.redAccent,
-              boxShadow: [
-                BoxShadow(
-                  color: (_isConnected ? Colors.greenAccent : Colors.redAccent).withValues(alpha: 0.6),
-                  blurRadius: 6,
-                  spreadRadius: 2,
-                ),
-              ],
+          PulsingStatusGlow(
+            isPulsing: _isConnected,
+            glowColor: _isConnected ? FixAiTokens.accentEmerald : FixAiTokens.accentRose,
+            maxRadius: 8,
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _isConnected ? FixAiTokens.accentEmerald : FixAiTokens.accentRose,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -513,12 +533,16 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
               children: [
                 Text(
                   _isConnected ? 'VTG / VGSG Active (Address 0x19)' : 'VTG Disconnected',
-                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: FixAiTokens.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
                   _statusText,
                   style: TextStyle(
-                    color: _isActionRunning ? Colors.amberAccent : Colors.white60,
+                    color: _isActionRunning ? FixAiTokens.accentAmber : FixAiTokens.textSecondary,
                     fontSize: 11,
                   ),
                 ),
@@ -529,7 +553,7 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
             const SizedBox(
               width: 18,
               height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.cyanAccent),
+              child: CircularProgressIndicator(strokeWidth: 2, color: FixAiTokens.accentCyan),
             ),
         ],
       ),
@@ -537,130 +561,177 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
   }
 
   Widget _buildTorqueSplitVisualizer() {
-    final front = _telemetry.frontTorquePercent.clamp(0.0, 100.0);
-    final rear = _telemetry.rearTorquePercent.clamp(0.0, 100.0);
+    final targetFront = _telemetry.frontTorquePercent.clamp(0.0, 100.0);
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF161B22),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.3)),
+        color: FixAiTokens.surfacePrimary,
+        borderRadius: FixAiTokens.borderRadiusLg,
+        border: Border.all(color: FixAiTokens.accentCyan.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.cyanAccent.withValues(alpha: 0.05),
+            color: FixAiTokens.accentCyan.withValues(alpha: 0.05),
             blurRadius: 16,
             spreadRadius: 2,
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
-            runSpacing: 6,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: targetFront, end: targetFront),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+        builder: (context, animatedFront, _) {
+          final front = animatedFront.clamp(0.0, 100.0);
+          final rear = (100.0 - front).clamp(0.0, 100.0);
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'LIVE TORQUE SPLIT',
-                style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 13),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.cyanAccent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '${front.toStringAsFixed(0)}% F / ${rear.toStringAsFixed(0)}% R',
-                  style: const TextStyle(
-                    color: Colors.cyanAccent,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Split Bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: SizedBox(
-              height: 26,
-              child: Row(
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 6,
                 children: [
-                  Expanded(
-                    flex: front.round().clamp(1, 100),
-                    child: Container(
-                      color: Colors.cyanAccent,
-                      alignment: Alignment.center,
-                      child: front >= 10
-                          ? Text(
-                              'FRONT ${front.toStringAsFixed(0)}%',
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )
-                          : const SizedBox.shrink(),
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: FixAiTokens.accentCyan,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'DYNAMIC TORQUE SPLIT',
+                        style: TextStyle(
+                          color: FixAiTokens.accentCyan,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
                   ),
-                  Expanded(
-                    flex: rear.round().clamp(1, 100),
-                    child: Container(
-                      color: Colors.orangeAccent,
-                      alignment: Alignment.center,
-                      child: rear >= 10
-                          ? Text(
-                              'REAR ${rear.toStringAsFixed(0)}%',
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )
-                          : const SizedBox.shrink(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: FixAiTokens.accentCyan.withValues(alpha: 0.12),
+                      borderRadius: FixAiTokens.borderRadiusSm,
+                      border: Border.all(
+                        color: FixAiTokens.accentCyan.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Text(
+                      '${front.toStringAsFixed(0)}% F / ${rear.toStringAsFixed(0)}% R',
+                      style: GoogleFonts.ibmPlexMono(
+                        color: FixAiTokens.accentCyan,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Visual Drivetrain Indicators
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              _buildAxleIndicator('FRONT AXLE', front, Colors.cyanAccent),
-              const Icon(Icons.sync_alt, color: Colors.white24, size: 20),
-              _buildAxleIndicator('REAR AXLE', rear, Colors.orangeAccent),
+              const SizedBox(height: 16),
+              // High-tech Split Bar
+              ClipRRect(
+                borderRadius: FixAiTokens.borderRadiusSm,
+                child: SizedBox(
+                  height: 28,
+                  child: Row(
+                    children: [
+                      if (front > 0)
+                        Flexible(
+                          flex: (front * 10).round().clamp(1, 1000),
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [FixAiTokens.accentCyan, Color(0xFF0091EA)],
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: front >= 14
+                                ? Text(
+                                    'FRONT ${front.toStringAsFixed(0)}%',
+                                    style: const TextStyle(
+                                      color: Color(0xFF090C10),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                        ),
+                      if (rear > 0)
+                        Flexible(
+                          flex: (rear * 10).round().clamp(1, 1000),
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFFFF9100), FixAiTokens.accentAmber],
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: rear >= 14
+                                ? Text(
+                                    'REAR ${rear.toStringAsFixed(0)}%',
+                                    style: const TextStyle(
+                                      color: Color(0xFF090C10),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Axle distribution indicators
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  _buildAxleIndicator('FRONT AXLE', front, FixAiTokens.accentCyan),
+                  const Icon(Icons.sync_alt_rounded, color: FixAiTokens.textMuted, size: 18),
+                  _buildAxleIndicator('REAR AXLE', rear, FixAiTokens.accentAmber),
+                ],
+              ),
             ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 
   Widget _buildAxleIndicator(String label, double pct, Color color) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 8,
-          height: 8,
+          width: 7,
+          height: 7,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
         Text(
           '$label: ${pct.toStringAsFixed(0)}%',
-          style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: FixAiTokens.textSecondary,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );
@@ -669,8 +740,8 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
   Widget _buildTelemetryGrid() {
     final temp = _telemetry.clutchTemperatureC;
     final tempColor = temp > 115
-        ? Colors.redAccent
-        : (temp > 90 ? Colors.orangeAccent : Colors.greenAccent);
+        ? FixAiTokens.accentRose
+        : (temp > 90 ? FixAiTokens.accentAmber : FixAiTokens.accentEmerald);
 
     return GridView.count(
       crossAxisCount: 2,
@@ -684,29 +755,29 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
           title: 'Front Ratio',
           subTitle: '0xD030',
           value: '${_telemetry.frontTorquePercent.toStringAsFixed(1)} %',
-          color: Colors.cyanAccent,
-          icon: Icons.front_hand,
+          color: FixAiTokens.accentCyan,
+          icon: Icons.front_hand_rounded,
         ),
         _buildTelemetryCard(
           title: 'Rear Ratio',
           subTitle: '0xD031',
           value: '${_telemetry.rearTorquePercent.toStringAsFixed(1)} %',
-          color: Colors.orangeAccent,
-          icon: Icons.settings,
+          color: FixAiTokens.accentAmber,
+          icon: Icons.settings_rounded,
         ),
         _buildTelemetryCard(
           title: 'Clutch Temp',
           subTitle: '0xD032',
           value: '${temp.toStringAsFixed(1)} °C',
           color: tempColor,
-          icon: Icons.thermostat,
+          icon: Icons.thermostat_rounded,
         ),
         _buildTelemetryCard(
           title: 'Clutch Torque',
           subTitle: '0xD033',
           value: '${_telemetry.clutchTorqueNm.toStringAsFixed(0)} Nm',
-          color: Colors.purpleAccent,
-          icon: Icons.speed,
+          color: FixAiTokens.accentPurple,
+          icon: Icons.speed_rounded,
         ),
       ],
     );
@@ -722,9 +793,9 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF161B22),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
+        color: FixAiTokens.surfacePrimary,
+        borderRadius: FixAiTokens.borderRadiusMd,
+        border: Border.all(color: FixAiTokens.borderSubtle),
       ),
       child: Row(
         children: [
@@ -732,7 +803,7 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: FixAiTokens.borderRadiusSm,
             ),
             child: Icon(icon, color: color, size: 18),
           ),
@@ -749,29 +820,35 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          color: FixAiTokens.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       if (subTitle != null) ...[
                         const SizedBox(width: 4),
                         Text(
                           subTitle,
-                          style: const TextStyle(color: Colors.white38, fontSize: 9, fontFamily: 'monospace'),
+                          style: GoogleFonts.ibmPlexMono(
+                            color: FixAiTokens.textMuted,
+                            fontSize: 9,
+                          ),
                         ),
                       ],
                     ],
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: Text(
                     value,
-                    style: TextStyle(
+                    style: GoogleFonts.ibmPlexMono(
                       color: color,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      fontFamily: 'monospace',
                     ),
                   ),
                 ),
@@ -791,23 +868,23 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
   }) {
     final isSelected = _selectedMode == mode;
 
-    return InkWell(
+    return BouncyPressable(
       onTap: () => _handleModeSelection(mode),
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: FixAiTokens.borderRadiusLg,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF161B22),
-          borderRadius: BorderRadius.circular(14),
+          color: FixAiTokens.surfacePrimary,
+          borderRadius: FixAiTokens.borderRadiusLg,
           border: Border.all(
-            color: isSelected ? color : Colors.white12,
-            width: isSelected ? 2.0 : 1.0,
+            color: isSelected ? color : FixAiTokens.borderSubtle,
+            width: isSelected ? 1.8 : 1.0,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: color.withValues(alpha: 0.2),
-                    blurRadius: 10,
+                    color: color.withValues(alpha: 0.15),
+                    blurRadius: 12,
                     spreadRadius: 1,
                   )
                 ]
@@ -821,7 +898,7 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
                 color: color.withValues(alpha: isSelected ? 0.25 : 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 26),
+              child: Icon(icon, color: color, size: 24),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -834,8 +911,8 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
                         child: Text(
                           mode.title,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: FixAiTokens.textPrimary,
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),
@@ -847,14 +924,15 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
                             color: color,
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: FixAiTokens.borderRadiusSm,
                           ),
                           child: const Text(
                             'ACTIVE',
                             style: TextStyle(
-                              color: Colors.black,
+                              color: Color(0xFF090C10),
                               fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ),
@@ -864,14 +942,15 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
                   const SizedBox(height: 4),
                   Text(
                     mode.subtitle,
-                    style: const TextStyle(color: Colors.white60, fontSize: 12),
+                    style: TextStyle(color: FixAiTokens.textSecondary, fontSize: 12),
                   ),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.06),
+                      color: FixAiTokens.surfaceElevated,
                       borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: FixAiTokens.borderSubtle),
                     ),
                     child: Text(
                       badgeText,
@@ -889,16 +968,16 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
 
   Widget _buildCustomModeCard() {
     final isSelected = _selectedMode == XDriveMode.custom;
-    const color = Colors.amberAccent;
+    const color = FixAiTokens.accentAmber;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF161B22),
-        borderRadius: BorderRadius.circular(14),
+        color: FixAiTokens.surfacePrimary,
+        borderRadius: FixAiTokens.borderRadiusLg,
         border: Border.all(
-          color: isSelected ? color : Colors.white12,
-          width: isSelected ? 2.0 : 1.0,
+          color: isSelected ? color : FixAiTokens.borderSubtle,
+          width: isSelected ? 1.8 : 1.0,
         ),
       ),
       child: Column(
@@ -912,7 +991,7 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
                   color: color.withValues(alpha: isSelected ? 0.25 : 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.tune, color: color, size: 26),
+                child: const Icon(Icons.tune_rounded, color: color, size: 24),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -925,8 +1004,8 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
                           child: Text(
                             XDriveMode.custom.title,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: FixAiTokens.textPrimary,
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),
@@ -938,14 +1017,14 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: color,
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: FixAiTokens.borderRadiusSm,
                             ),
                             child: const Text(
                               'ACTIVE',
                               style: TextStyle(
-                                color: Colors.black,
+                                color: Color(0xFF090C10),
                                 fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
                           ),
@@ -955,7 +1034,7 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
                     const SizedBox(height: 4),
                     Text(
                       XDriveMode.custom.subtitle,
-                      style: const TextStyle(color: Colors.white60, fontSize: 12),
+                      style: TextStyle(color: FixAiTokens.textSecondary, fontSize: 12),
                     ),
                   ],
                 ),
@@ -970,48 +1049,66 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
             spacing: 8,
             runSpacing: 4,
             children: [
-              const Text(
+              Text(
                 'Front Torque Clamp Ratio:',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+                style: TextStyle(color: FixAiTokens.textSecondary, fontSize: 12),
               ),
               Text(
                 '${_customClutchValue.toStringAsFixed(0)}% Front / ${(100 - _customClutchValue).toStringAsFixed(0)}% Rear',
-                style: const TextStyle(
+                style: GoogleFonts.ibmPlexMono(
                   color: color,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
-                  fontFamily: 'monospace',
                 ),
               ),
             ],
           ),
-          Slider(
-            value: _customClutchValue,
-            min: 0.0,
-            max: 50.0, // 0 to 50% front torque (up to 50/50 locked)
-            divisions: 50,
-            activeColor: color,
-            inactiveColor: Colors.white12,
-            label: '${_customClutchValue.toStringAsFixed(0)}%',
-            onChanged: (val) {
-              setState(() {
-                _customClutchValue = val;
-              });
-            },
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: color,
+              inactiveTrackColor: FixAiTokens.surfaceHighlight,
+              thumbColor: color,
+              overlayColor: color.withValues(alpha: 0.15),
+            ),
+            child: Slider(
+              value: _customClutchValue,
+              min: 0.0,
+              max: 50.0,
+              divisions: 50,
+              label: '${_customClutchValue.toStringAsFixed(0)}%',
+              onChanged: (val) {
+                setState(() {
+                  _customClutchValue = val;
+                });
+              },
+            ),
           ),
           Align(
             alignment: Alignment.centerRight,
-            child: ElevatedButton.icon(
-              onPressed: () => _handleModeSelection(XDriveMode.custom),
-              icon: const Icon(Icons.check, size: 16, color: Colors.black),
-              label: const Text(
-                'Apply Custom Split',
-                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: color,
+            child: BouncyPressable(
+              onTap: () => _handleModeSelection(XDriveMode.custom),
+              borderRadius: FixAiTokens.borderRadiusSm,
+              child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: FixAiTokens.borderRadiusSm,
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_rounded, size: 16, color: Color(0xFF090C10)),
+                    SizedBox(width: 6),
+                    Text(
+                      'Apply Custom Split',
+                      style: TextStyle(
+                        color: Color(0xFF090C10),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1024,9 +1121,9 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF161B22),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.4)),
+        color: FixAiTokens.surfacePrimary,
+        borderRadius: FixAiTokens.borderRadiusLg,
+        border: Border.all(color: FixAiTokens.accentCyan.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1036,24 +1133,31 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.cyanAccent.withValues(alpha: 0.12),
+                  color: FixAiTokens.accentCyan.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.build_circle_outlined, color: Colors.cyanAccent, size: 26),
+                child: const Icon(Icons.build_circle_outlined, color: FixAiTokens.accentCyan, size: 24),
               ),
               const SizedBox(width: 14),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'VTG Clutch Wear Calibration',
-                      style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: FixAiTokens.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
                       'UDS RoutineControl 0x31 0x01 A1 01',
-                      style: TextStyle(color: Colors.cyanAccent, fontSize: 11, fontFamily: 'monospace'),
+                      style: GoogleFonts.ibmPlexMono(
+                        color: FixAiTokens.accentCyan,
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),
@@ -1061,31 +1165,45 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Resets STAT_WORKCLUTCH_WERT and STAT_PRCTMPSTRESSCLUTCH_WERT adaptation registers and runs acoustic zero-point calibration routine. Required after transfer case fluid changes or multi-disc clutch service.',
-            style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+            style: TextStyle(color: FixAiTokens.textSecondary, fontSize: 12, height: 1.4),
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _isActionRunning ? null : _handleClutchCalibration,
-              icon: _isActionRunning
-                  ? const SizedBox(
+          BouncyPressable(
+            onTap: _isActionRunning ? null : _handleClutchCalibration,
+            borderRadius: FixAiTokens.borderRadiusMd,
+            enabled: !_isActionRunning,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: _isActionRunning ? FixAiTokens.surfaceHighlight : FixAiTokens.accentCyan,
+                borderRadius: FixAiTokens.borderRadiusMd,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (_isActionRunning) ...[
+                    const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-                    )
-                  : const Icon(Icons.play_arrow, color: Colors.black),
-              label: const Text(
-                'Calibrate Transfer Case Clutch',
-                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.cyanAccent,
-                disabledBackgroundColor: Colors.grey.shade800,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF090C10)),
+                    ),
+                    const SizedBox(width: 8),
+                  ] else ...[
+                    const Icon(Icons.play_arrow_rounded, color: Color(0xFF090C10), size: 20),
+                    const SizedBox(width: 6),
+                  ],
+                  const Text(
+                    'Calibrate Transfer Case Clutch',
+                    style: TextStyle(
+                      color: Color(0xFF090C10),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

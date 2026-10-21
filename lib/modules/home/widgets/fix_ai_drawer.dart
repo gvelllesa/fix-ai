@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../garage/widgets/add_car_dialog.dart';
-import '../../obd/widgets/advanced_connection_dialog.dart';
-import '../../obd/screens/ecu_scan_screen.dart';
-import '../../obd/screens/live_telemetry_screen.dart';
-import '../../obd/screens/flash_tuning_screen.dart';
-import '../../obd/screens/xdrive_control_screen.dart';
-import '../../obd/screens/service_functions_screen.dart';
-import '../../obd/screens/coding_screen.dart';
+
+import '../../../core/animations/fix_ai_motion.dart';
+import '../../../core/theme/fix_ai_tokens.dart';
 import '../../../core/theme/theme_controller.dart';
+import '../../garage/widgets/add_car_dialog.dart';
+import '../../obd/screens/coding_screen.dart';
+import '../../obd/screens/ecu_scan_screen.dart';
+import '../../obd/screens/flash_tuning_screen.dart';
+import '../../obd/screens/live_telemetry_screen.dart';
+import '../../obd/screens/service_functions_screen.dart';
+import '../../obd/screens/xdrive_control_screen.dart';
+import '../../obd/widgets/advanced_connection_dialog.dart';
 
 class FixAiDrawer extends StatefulWidget {
   final String? currentCarId;
@@ -27,340 +30,225 @@ class FixAiDrawer extends StatefulWidget {
 }
 
 class _FixAiDrawerState extends State<FixAiDrawer> {
-  // We use this key to force FutureBuilder to re-fetch when a car is added
   int _refreshKey = 0;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bgColor = theme.scaffoldBackgroundColor;
-    final accentColor = theme.primaryColor;
-    final textPrimary = theme.textTheme.bodyLarge?.color ?? Colors.white;
-    final textSecondary = textPrimary.withValues(alpha: 0.7);
-    final textTertiary = textPrimary.withValues(alpha: 0.54);
+    final isDark = theme.brightness == Brightness.dark;
+    final bgColor = isDark ? FixAiTokens.canvas : theme.scaffoldBackgroundColor;
+    final textPrimary = isDark ? FixAiTokens.textPrimary : (theme.textTheme.bodyLarge?.color ?? Colors.black87);
+    final textSecondary = isDark ? FixAiTokens.textSecondary : Colors.black54;
+    final textTertiary = isDark ? FixAiTokens.textMuted : Colors.black38;
 
     return Drawer(
       backgroundColor: bgColor,
       child: SafeArea(
         child: Column(
           children: [
-            // Top Section
+            // Top Branding & Hero Diagnostic Trigger
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+              padding: const EdgeInsets.fromLTRB(18, 20, 18, 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'FIX AI',
-                    style: TextStyle(
-                      color: accentColor,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: FixAiTokens.accentCyan.withValues(alpha: 0.12),
+                          borderRadius: FixAiTokens.borderRadiusSm,
+                          border: Border.all(
+                            color: FixAiTokens.accentCyan.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: const Icon(Icons.speed_rounded, color: FixAiTokens.accentCyan, size: 20),
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'FIX AI',
+                            style: TextStyle(
+                              color: textPrimary,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                          Text(
+                            'FACTORY DIAGNOSTICS & TUNING',
+                            style: TextStyle(
+                              color: textTertiary,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: () {
+                  const SizedBox(height: 16),
+
+                  // Hero Diagnostic Scan CTA
+                  BouncyPressable(
+                    onTap: () {
                       Navigator.pop(context);
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const EcuScanScreen()),
+                        SmoothSlidePageRoute(page: const EcuScanScreen()),
                       );
                     },
-                    icon: const Icon(Icons.health_and_safety, size: 20),
-                    label: const Text(
-                      'Full Diagnostic Scan',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accentColor,
-                      foregroundColor: textPrimary,
-                      minimumSize: const Size(double.infinity, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                    borderRadius: FixAiTokens.borderRadiusMd,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [FixAiTokens.accentCyan, Color(0xFF00B0FF)],
+                        ),
+                        borderRadius: FixAiTokens.borderRadiusMd,
                       ),
-                      elevation: 0,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  // Real ECU Topology Scanner
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (c) => const EcuScanScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.memory, size: 20),
-                    label: const Text(
-                      'ECU Topology & DTCs',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.brightness == Brightness.dark 
-                          ? Colors.white.withValues(alpha: 0.06) 
-                          : Colors.black.withValues(alpha: 0.06),
-                      foregroundColor: textPrimary,
-                      minimumSize: const Size(double.infinity, 44),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: BorderSide(
-                          color: accentColor.withValues(alpha: 0.4),
-                          width: 1.0,
-                        ),
-                      ),
-                      elevation: 0,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Real High-Speed Live Telemetry Gauges
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (c) => const LiveTelemetryScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.speed, size: 20),
-                    label: const Text(
-                      'Live Gauges & Logging',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.brightness == Brightness.dark 
-                          ? Colors.white.withValues(alpha: 0.05) 
-                          : Colors.black.withValues(alpha: 0.05),
-                      foregroundColor: textPrimary,
-                      minimumSize: const Size(double.infinity, 44),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: BorderSide(
-                          color: theme.brightness == Brightness.dark
-                              ? Colors.white.withValues(alpha: 0.12)
-                              : Colors.black.withValues(alpha: 0.12)
-                        ),
-                      ),
-                      elevation: 0,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // BMW DME Tuning & Flash Options
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (c) => const FlashTuningScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.flash_on, size: 20, color: Colors.greenAccent),
-                    label: const Text(
-                      'BMW Tuning & Flash Options',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.brightness == Brightness.dark 
-                          ? Colors.white.withValues(alpha: 0.05) 
-                          : Colors.black.withValues(alpha: 0.05),
-                      foregroundColor: textPrimary,
-                      minimumSize: const Size(double.infinity, 44),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: BorderSide(
-                          color: Colors.greenAccent.withValues(alpha: 0.4),
-                          width: 1.0,
-                        ),
-                      ),
-                      elevation: 0,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // BMW xDrive Transfer Case Controller
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (c) => const XDriveControlScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.all_inclusive, size: 20, color: Colors.cyanAccent),
-                    label: const Text(
-                      'xDrive AWD Torque Distribution',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.brightness == Brightness.dark 
-                          ? Colors.white.withValues(alpha: 0.05) 
-                          : Colors.black.withValues(alpha: 0.05),
-                      foregroundColor: textPrimary,
-                      minimumSize: const Size(double.infinity, 44),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: BorderSide(
-                          color: Colors.cyanAccent.withValues(alpha: 0.4),
-                          width: 1.0,
-                        ),
-                      ),
-                      elevation: 0,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // BMW Workshop & Service Functions
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (c) => const ServiceFunctionsScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.handyman, size: 20, color: Colors.orangeAccent),
-                    label: const Text(
-                      'BMW Workshop & Service Functions',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.brightness == Brightness.dark 
-                          ? Colors.white.withValues(alpha: 0.05) 
-                          : Colors.black.withValues(alpha: 0.05),
-                      foregroundColor: textPrimary,
-                      minimumSize: const Size(double.infinity, 44),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: BorderSide(
-                          color: Colors.orangeAccent.withValues(alpha: 0.4),
-                          width: 1.0,
-                        ),
-                      ),
-                      elevation: 0,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // BMW Coding & Cheat Codes
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (c) => const CodingScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.tune, size: 20, color: Colors.purpleAccent),
-                    label: const Text(
-                      'BMW Coding & Cheat Codes',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.brightness == Brightness.dark 
-                          ? Colors.white.withValues(alpha: 0.05) 
-                          : Colors.black.withValues(alpha: 0.05),
-                      foregroundColor: textPrimary,
-                      minimumSize: const Size(double.infinity, 44),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: BorderSide(
-                          color: Colors.purpleAccent.withValues(alpha: 0.4),
-                          width: 1.0,
-                        ),
-                      ),
-                      elevation: 0,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Hardware Adapter Connection Setup
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      final result = await showDialog<Map<String, dynamic>>(
-                        context: context,
-                        builder: (c) => const AdvancedConnectionDialog(),
-                      );
-                      if (!context.mounted) return;
-                      if (result != null && result['status'] == 'connected') {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Connected to ${result['chassis']} (VIN: ${result['vin']}) at ${result['host']}:${result['port']}'),
-                            backgroundColor: accentColor,
+                      child: const Row(
+                        children: [
+                          Icon(Icons.health_and_safety_rounded, color: Color(0xFF090C10), size: 20),
+                          SizedBox(width: 10),
+                          Text(
+                            'Full Diagnostic Scan',
+                            style: TextStyle(
+                              color: Color(0xFF090C10),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                            ),
                           ),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.settings_ethernet, size: 18),
-                    label: const Text(
-                      'Adapter Setup',
-                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: textSecondary,
-                      side: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.1),
-                      ),
-                      minimumSize: const Size(double.infinity, 38),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                          Spacer(),
+                          Icon(Icons.arrow_forward_rounded, color: Color(0xFF090C10), size: 16),
+                        ],
                       ),
                     ),
                   ),
                 ],
               ),
             ),
+            const Divider(color: FixAiTokens.borderSubtle, height: 1),
 
-            // Middle Section (Expanded)
+            // Middle Section: Categorized Workshop Navigation & Garage
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 children: [
-                  // HISTORY
-                  _buildSubHeader('DIAGNOSTIC HISTORY', Icons.history, textTertiary),
-                  _buildHistoryItem(context, 'N55 Engine Misfire Analysis', isActive: true, accentColor: accentColor),
-                  _buildHistoryItem(context, 'Steering Rack Zero-Point Calibration', isActive: false, accentColor: accentColor),
-                  
-                  const SizedBox(height: 24),
-                  
+                  _buildSubHeader('WORKSHOP MODULES', Icons.grid_view_rounded, textTertiary),
+                  const SizedBox(height: 6),
+                  _buildNavTile(
+                    context: context,
+                    icon: Icons.hub_rounded,
+                    title: 'ECU Topology & DTCs',
+                    subtitle: 'Full 32-module scan & freeze frames',
+                    color: FixAiTokens.accentEmerald,
+                    destination: const EcuScanScreen(),
+                  ),
+                  _buildNavTile(
+                    context: context,
+                    icon: Icons.speed_rounded,
+                    title: 'Live Telemetry & Gauges',
+                    subtitle: 'High-speed UDS boost, AFR & temps',
+                    color: FixAiTokens.accentCyan,
+                    destination: const LiveTelemetryScreen(),
+                  ),
+                  _buildNavTile(
+                    context: context,
+                    icon: Icons.bolt_rounded,
+                    title: 'Tuning & Flash Calibration',
+                    subtitle: 'Custom ROM, burbles & TCU options',
+                    color: FixAiTokens.accentAmber,
+                    destination: const FlashTuningScreen(),
+                  ),
+                  _buildNavTile(
+                    context: context,
+                    icon: Icons.alt_route_rounded,
+                    title: 'xDrive AWD Control',
+                    subtitle: 'Dynamic torque split & 100% RWD',
+                    color: FixAiTokens.accentCyan,
+                    destination: const XDriveControlScreen(),
+                  ),
+                  _buildNavTile(
+                    context: context,
+                    icon: Icons.home_repair_service_rounded,
+                    title: 'Service & Adaptations',
+                    subtitle: 'Battery register, brake bleed, VTG reset',
+                    color: FixAiTokens.accentAmber,
+                    destination: const ServiceFunctionsScreen(),
+                  ),
+                  _buildNavTile(
+                    context: context,
+                    icon: Icons.terminal_rounded,
+                    title: 'Vehicle Coding & FDL',
+                    subtitle: 'SALAPA orders & cheat codes',
+                    color: FixAiTokens.accentPurple,
+                    destination: const CodingScreen(),
+                  ),
+                  _buildNavTile(
+                    context: context,
+                    icon: Icons.settings_ethernet_rounded,
+                    title: 'Adapter Hardware Setup',
+                    subtitle: 'ENET, WiFi, Bluetooth ELM327',
+                    color: FixAiTokens.textSecondary,
+                    onTapCustom: () async {
+                      Navigator.pop(context);
+                      await showDialog(
+                        context: context,
+                        builder: (c) => const AdvancedConnectionDialog(),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
                   // MY GARAGE
                   _buildSubHeader('MY GARAGE', Icons.directions_car_outlined, textTertiary),
-                  
-                  // Fetch cars dynamically from Supabase
+                  const SizedBox(height: 6),
                   FutureBuilder<List<Map<String, dynamic>>>(
                     key: ValueKey(_refreshKey),
-                    future: Supabase.instance.client.from('garage').select().order('created_at', ascending: false),
+                    future: Supabase.instance.client
+                        .from('garage')
+                        .select()
+                        .order('created_at', ascending: false),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.0),
                           child: Center(
                             child: SizedBox(
-                              width: 20, 
-                              height: 20, 
-                              child: CircularProgressIndicator(strokeWidth: 2, color: accentColor)
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: FixAiTokens.accentCyan),
                             ),
                           ),
                         );
                       }
                       if (snapshot.hasError) {
                         return Padding(
-                           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                           child: Text('Error loading cars', style: TextStyle(color: Colors.red.shade300, fontSize: 12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                          child: Text(
+                            'Error loading vehicles',
+                            style: TextStyle(color: FixAiTokens.accentRose, fontSize: 12),
+                          ),
                         );
                       }
-                      
+
                       final cars = snapshot.data ?? [];
                       if (cars.isEmpty) {
-                         return const Padding(
-                           padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                           child: Text('No cars added yet.', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                         );
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                          child: Text(
+                            'No vehicles registered in garage.',
+                            style: TextStyle(color: textTertiary, fontSize: 12),
+                          ),
+                        );
                       }
-                      
+
                       return Column(
                         children: cars.map((car) {
                           final make = car['make'] ?? '';
@@ -372,7 +260,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                             context,
                             title.isEmpty ? 'Unknown Vehicle' : title,
                             isActive: isActive,
-                            accentColor: accentColor,
+                            accentColor: FixAiTokens.accentCyan,
                             onTap: () {
                               Navigator.pop(context);
                               if (widget.onVehicleSelected != null) {
@@ -384,90 +272,101 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                       );
                     },
                   ),
-                  
+
                   // Add Car Button
                   Padding(
-                    padding: const EdgeInsets.only(top: 8.0, left: 8.0),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        onPressed: () async {
-                          final result = await showDialog<bool>(
-                            context: context,
-                            builder: (_) => const AddCarDialog(),
-                          );
-                          // If AddCarDialog returned true (success), refresh the list
-                          if (result == true) {
-                            setState(() {
-                              _refreshKey++;
-                            });
-                          }
-                        },
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add Car'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: textSecondary,
-                          textStyle: const TextStyle(fontWeight: FontWeight.w500),
-                        ),
+                    padding: const EdgeInsets.only(top: 6.0),
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        final result = await showDialog<bool>(
+                          context: context,
+                          builder: (_) => const AddCarDialog(),
+                        );
+                        if (result == true) {
+                          setState(() {
+                            _refreshKey++;
+                          });
+                        }
+                      },
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      label: const Text('Add Vehicle to Garage'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: FixAiTokens.accentCyan,
+                        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 14),
+
+                  // DIAGNOSTIC HISTORY
+                  _buildSubHeader('RECENT PROCEDURES', Icons.history_rounded, textTertiary),
+                  const SizedBox(height: 6),
+                  _buildHistoryItem(
+                    context,
+                    'N55 Engine Misfire Analysis',
+                    isActive: true,
+                    accentColor: FixAiTokens.accentCyan,
+                  ),
+                  _buildHistoryItem(
+                    context,
+                    'VTG Transfer Case Adaptation Reset',
+                    isActive: false,
+                    accentColor: FixAiTokens.accentCyan,
+                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
-            
 
-            // Bottom Section (Profile)
+            // Bottom Profile / Settings Section
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: Theme.of(context).brightness == Brightness.dark 
-                        ? Colors.white10 
-                        : Colors.black12, 
-                    width: 1
-                  ),
+                color: FixAiTokens.surfacePrimary,
+                border: const Border(
+                  top: BorderSide(color: FixAiTokens.borderSubtle, width: 1),
                 ),
               ),
               child: Row(
                 children: [
                   CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Theme.of(context).brightness == Brightness.dark 
-                        ? Colors.white12 
-                        : Colors.black12,
-                    child: Icon(Icons.person, color: textSecondary, size: 20),
+                    radius: 17,
+                    backgroundColor: FixAiTokens.surfaceElevated,
+                    child: Icon(Icons.person_rounded, color: textSecondary, size: 18),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'ნიკა გველესიანი',
-                          style: TextStyle(color: textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+                          style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0F62FE),
-                            borderRadius: const BorderRadius.all(Radius.circular(4)),
+                            color: FixAiTokens.accentCyan.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(
-                            'Pro',
-                            style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            'PRO WORKSHOP',
+                            style: TextStyle(
+                              color: FixAiTokens.accentCyan,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    onPressed: () => _showSettingsModal(context, theme, textPrimary, accentColor, textTertiary),
-                    icon: Icon(Icons.settings, size: 20, color: textTertiary),
+                    onPressed: () => _showSettingsModal(context, theme, textPrimary, FixAiTokens.accentCyan, textTertiary),
+                    icon: Icon(Icons.settings_rounded, size: 19, color: textTertiary),
                     tooltip: 'Settings',
                   ),
                   IconButton(
@@ -484,7 +383,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                         }
                       }
                     },
-                    icon: Icon(Icons.logout, size: 20, color: textTertiary),
+                    icon: Icon(Icons.logout_rounded, size: 19, color: textTertiary),
                     tooltip: 'Log Out',
                   ),
                 ],
@@ -496,109 +395,221 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
     );
   }
 
+  Widget _buildNavTile({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    Widget? destination,
+    VoidCallback? onTapCustom,
+  }) {
+    return BouncyPressable(
+      onTap: () {
+        if (onTapCustom != null) {
+          onTapCustom();
+        } else if (destination != null) {
+          Navigator.pop(context);
+          Navigator.push(context, SmoothSlidePageRoute(page: destination));
+        }
+      },
+      borderRadius: FixAiTokens.borderRadiusMd,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: FixAiTokens.surfaceElevated,
+          borderRadius: FixAiTokens.borderRadiusMd,
+          border: Border.all(color: FixAiTokens.borderSubtle),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: FixAiTokens.borderRadiusSm,
+                border: Border.all(color: color.withValues(alpha: 0.25)),
+              ),
+              child: Icon(icon, color: color, size: 17),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: FixAiTokens.textPrimary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: FixAiTokens.textMuted,
+                      fontSize: 10.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: FixAiTokens.textMuted, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubHeader(String title, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 4, top: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 6),
+          Text(
+            title,
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.9,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryItem(BuildContext context, String title, {required bool isActive, required Color accentColor}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      decoration: BoxDecoration(
+        color: isActive ? FixAiTokens.surfaceElevated : Colors.transparent,
+        borderRadius: FixAiTokens.borderRadiusSm,
+        border: Border.all(
+          color: isActive ? FixAiTokens.borderSubtle : Colors.transparent,
+        ),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListTile(
+          title: Text(
+            title,
+            style: TextStyle(
+              color: isActive ? FixAiTokens.textPrimary : FixAiTokens.textSecondary,
+              fontSize: 12.5,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          leading: Icon(
+            Icons.history_rounded,
+            size: 16,
+            color: isActive ? accentColor : FixAiTokens.textMuted,
+          ),
+          dense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+          onTap: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGarageItem(BuildContext context, String title, {required bool isActive, required Color accentColor, required VoidCallback onTap}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      decoration: BoxDecoration(
+        color: isActive ? FixAiTokens.surfaceElevated : Colors.transparent,
+        borderRadius: FixAiTokens.borderRadiusSm,
+        border: Border.all(
+          color: isActive ? accentColor.withValues(alpha: 0.4) : FixAiTokens.borderSubtle,
+          width: 1.0,
+        ),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListTile(
+          title: Text(
+            title,
+            style: TextStyle(
+              color: isActive ? FixAiTokens.textPrimary : FixAiTokens.textSecondary,
+              fontSize: 12.5,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          leading: Icon(
+            Icons.directions_car_rounded,
+            size: 16,
+            color: isActive ? accentColor : FixAiTokens.textMuted,
+          ),
+          trailing: isActive
+              ? Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: accentColor,
+                    shape: BoxShape.circle,
+                  ),
+                )
+              : null,
+          dense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+          onTap: onTap,
+        ),
+      ),
+    );
+  }
+
   void _showSettingsModal(BuildContext context, ThemeData theme, Color textPrimary, Color accentColor, Color textTertiary) {
-    // Local state for measurement units toggle
     final measurementNotifier = ValueNotifier<String>('Metric');
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: FixAiTokens.surfacePrimary,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (BuildContext modalContext) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(22.0),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Handle
                   Center(
                     child: Container(
-                      width: 40,
+                      width: 36,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: theme.dividerColor.withValues(alpha: 0.2),
+                        color: FixAiTokens.borderSubtle,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  
-                  // 1. PRO Upgrade Banner
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF1E3A8A), Color(0xFF4C1D95)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        )
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.bolt, color: Colors.amber, size: 28),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Unlock FIX AI PRO',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Unlimited advanced factory-grade diagnostics & OBD scans',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.8),
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(modalContext);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: const Color(0xFF1E3A8A),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: const Text('Go Pro', style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  
-                  // 2. Appearance Section
+                  const SizedBox(height: 20),
+
+                  // Appearance Theme
                   Text(
-                    'Appearance',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary),
+                    'Appearance Theme',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   AnimatedBuilder(
                     animation: ThemeController(),
                     builder: (context, _) {
@@ -617,22 +628,22 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                           },
                           style: SegmentedButton.styleFrom(
                             foregroundColor: textPrimary,
-                            selectedForegroundColor: Colors.white,
+                            selectedForegroundColor: Colors.black,
                             selectedBackgroundColor: accentColor,
-                            side: BorderSide(color: textTertiary.withValues(alpha: 0.2)),
+                            side: const BorderSide(color: FixAiTokens.borderSubtle),
                           ),
                         ),
                       );
-                    }
+                    },
                   ),
-                  const SizedBox(height: 24),
-                  
-                  // 3. Measurement Units
+                  const SizedBox(height: 20),
+
+                  // Measurement Units
                   Text(
                     'Measurement Units',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   ValueListenableBuilder<String>(
                     valueListenable: measurementNotifier,
                     builder: (context, value, _) {
@@ -640,8 +651,8 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                         width: double.infinity,
                         child: SegmentedButton<String>(
                           segments: const [
-                            ButtonSegment(value: 'Metric', label: Text('Metric (km, °C)', style: TextStyle(fontSize: 12))),
-                            ButtonSegment(value: 'Imperial', label: Text('Imperial (mi, °F)', style: TextStyle(fontSize: 12))),
+                            ButtonSegment(value: 'Metric', label: Text('Metric (km, °C, Bar)', style: TextStyle(fontSize: 12))),
+                            ButtonSegment(value: 'Imperial', label: Text('Imperial (mi, °F, PSI)', style: TextStyle(fontSize: 12))),
                           ],
                           selected: {value},
                           onSelectionChanged: (Set<String> newSelection) {
@@ -649,22 +660,22 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                           },
                           style: SegmentedButton.styleFrom(
                             foregroundColor: textPrimary,
-                            selectedForegroundColor: Colors.white,
+                            selectedForegroundColor: Colors.black,
                             selectedBackgroundColor: accentColor,
-                            side: BorderSide(color: textTertiary.withValues(alpha: 0.2)),
+                            side: const BorderSide(color: FixAiTokens.borderSubtle),
                           ),
                         ),
                       );
-                    }
+                    },
                   ),
-                  const SizedBox(height: 32),
-                  
-                  // 4. Danger Zone
-                  Divider(color: theme.dividerColor.withValues(alpha: 0.1)),
+                  const SizedBox(height: 24),
+                  const Divider(color: FixAiTokens.borderSubtle, height: 1),
+                  const SizedBox(height: 8),
+
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.delete_forever, color: Colors.red),
-                    title: const Text('Clear Diagnostic History', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                    leading: const Icon(Icons.delete_outline_rounded, color: FixAiTokens.accentRose),
+                    title: const Text('Clear Diagnostic History', style: TextStyle(color: FixAiTokens.accentRose, fontWeight: FontWeight.bold)),
                     onTap: () {
                       Navigator.pop(modalContext);
                     },
@@ -675,96 +686,6 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildSubHeader(String title, IconData icon, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 8, top: 8),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.0,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHistoryItem(BuildContext context, String title, {required bool isActive, required Color accentColor}) {
-    final theme = Theme.of(context);
-    final textPrimary = theme.textTheme.bodyLarge?.color ?? Colors.white;
-    final textSecondary = textPrimary.withValues(alpha: 0.7);
-    final hoverColor = theme.brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 2),
-      decoration: BoxDecoration(
-        color: isActive ? hoverColor : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: ListTile(
-          title: Text(
-            title,
-            style: TextStyle(
-              color: isActive ? textPrimary : textSecondary,
-              fontSize: 14,
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          dense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-          onTap: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGarageItem(BuildContext context, String title, {required bool isActive, required Color accentColor, required VoidCallback onTap}) {
-    final theme = Theme.of(context);
-    final textPrimary = theme.textTheme.bodyLarge?.color ?? Colors.white;
-    final textSecondary = textPrimary.withValues(alpha: 0.7);
-    final hoverColor = theme.brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 2),
-      decoration: BoxDecoration(
-        color: isActive ? hoverColor : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        border: isActive ? Border(left: BorderSide(color: accentColor, width: 3)) : null,
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: ListTile(
-          title: Text(
-            title,
-            style: TextStyle(
-              color: isActive ? accentColor : textSecondary,
-              fontSize: 14,
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          dense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-          onTap: onTap,
-        ),
-      ),
     );
   }
 }
