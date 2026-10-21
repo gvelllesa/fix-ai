@@ -1,0 +1,651 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "source": "BMW ISTA+ 4.59.30 EcuFunctions & Testmodule",
+    "total_ecu_jobs": 10,
+    "total_service_routines": 10,
+    "total_retrofit_modules": 0
+  },
+  "service_routines": [
+    {
+      "id": "cbs_reset",
+      "name": "CBS Condition Based Service Reset",
+      "description": "Resets Engine Oil, Brake Pads, Brake Fluid, and Vehicle Inspection intervals",
+      "ecu_target": "KOMBI / DME",
+      "diag_address": "0x60",
+      "routine_type": "standard_cbs",
+      "items": [
+        "Engine Oil",
+        "Front Brake Pads",
+        "Rear Brake Pads",
+        "Brake Fluid",
+        "Vehicle Check"
+      ],
+      "uds_routine_id": "0x02B0",
+      "safety_level": "safe"
+    },
+    {
+      "id": "battery_register",
+      "name": "Battery Registration & Capacity Encoding",
+      "description": "Registers new 12V AGM/Lead-Acid battery in DME/DDE and updates power management histogram",
+      "ecu_target": "DME / DDE",
+      "diag_address": "0x12",
+      "routine_type": "battery_histogram_reset",
+      "supported_types": [
+        "80Ah AGM",
+        "90Ah AGM",
+        "92Ah AGM",
+        "95Ah AGM",
+        "105Ah AGM",
+        "80Ah Lead-Acid",
+        "90Ah Lead-Acid"
+      ],
+      "uds_job": "STEUERN_BATTERIETAUSCH_REGISTRIEREN",
+      "safety_level": "safe"
+    },
+    {
+      "id": "dpf_regeneration",
+      "name": "DPF Diesel Particulate Filter Regeneration",
+      "description": "Triggers forced exhaust particulate filter regeneration cycle during drive",
+      "ecu_target": "DDE",
+      "diag_address": "0x12",
+      "routine_type": "exhaust_treatment",
+      "preconditions": [
+        "Coolant temp >= 75 C",
+        "Exhaust temp >= 240 C",
+        "Fuel level >= 10 Liters",
+        "Vehicle speed > 60 km/h"
+      ],
+      "uds_routine_id": "0x0340",
+      "safety_level": "safe"
+    },
+    {
+      "id": "egs_adaptations_reset",
+      "name": "ZF 8HP Transmission Adaptations Reset",
+      "description": "Clears clutch fill pressures and rapid filling times in EGS transmission control module",
+      "ecu_target": "EGS",
+      "diag_address": "0x18",
+      "routine_type": "transmission_calibration",
+      "preconditions": [
+        "Engine OFF",
+        "Ignition ON",
+        "Transmission in P",
+        "Transmission oil temp 30C - 60C"
+      ],
+      "uds_routine_id": "0x0285",
+      "safety_level": "moderate"
+    },
+    {
+      "id": "vtg_oil_reset_calibration",
+      "name": "xDrive Transfer Case (VTG) Oil Reset & Clutch Calibration",
+      "description": "Resets oil wear index and executes mechanical clutch lock calibration cycle",
+      "ecu_target": "VTG",
+      "diag_address": "0x19",
+      "routine_type": "all_wheel_drive_calibration",
+      "preconditions": [
+        "Vehicle stationary on level ground",
+        "Parking brake engaged",
+        "Ignition ON"
+      ],
+      "uds_routine_id": "0x0290",
+      "safety_level": "safe"
+    },
+    {
+      "id": "valvetronic_learn",
+      "name": "Valvetronic Mechanical Limit Positions Learn",
+      "description": "Drives Valvetronic servomotor to minimum and maximum mechanical stops to calibrate eccentric shaft sensor",
+      "ecu_target": "DME",
+      "diag_address": "0x12",
+      "routine_type": "engine_actuator_learn",
+      "preconditions": [
+        "Engine OFF",
+        "Ignition ON",
+        "Battery voltage >= 12.5V"
+      ],
+      "uds_routine_id": "0x0295",
+      "safety_level": "moderate"
+    },
+    {
+      "id": "epb_workshop_mode",
+      "name": "Electronic Parking Brake (EPB) Workshop Mode",
+      "description": "Retracts rear brake calipers into service position for brake pad and rotor replacement",
+      "ecu_target": "DSC / EMF",
+      "diag_address": "0x29",
+      "routine_type": "brake_service",
+      "preconditions": [
+        "Vehicle on lift or secure chocks",
+        "Parking brake disengaged"
+      ],
+      "uds_routine_id": "0x0310",
+      "safety_level": "safe"
+    },
+    {
+      "id": "steering_angle_calibration",
+      "name": "Steering Angle Sensor (LWS/SAS) Zero-Point Calibration",
+      "description": "Calibrates electronic power steering (EPS/ICM) straight-ahead zero position",
+      "ecu_target": "ICM / EPS",
+      "diag_address": "0x1C",
+      "routine_type": "chassis_calibration",
+      "preconditions": [
+        "Steering wheel positioned straight ahead",
+        "Wheels pointing forward",
+        "Vehicle stationary"
+      ],
+      "uds_routine_id": "0x02A0",
+      "safety_level": "safe"
+    },
+    {
+      "id": "brake_bleed_routine",
+      "name": "DSC / ABS Hydraulic Brake Bleeding Routine",
+      "description": "Activates ABS return pump and solenoid valves sequentially to expel trapped air from hydraulic unit",
+      "ecu_target": "DSC",
+      "diag_address": "0x29",
+      "routine_type": "hydraulic_bleeding",
+      "preconditions": [
+        "Brake pressure bleeder connected at 2.0 bar",
+        "Bleeder screw open on target caliper"
+      ],
+      "uds_routine_id": "0x0320",
+      "safety_level": "moderate"
+    },
+    {
+      "id": "injector_coding",
+      "name": "Diesel / Gasoline Injector Compensation (IMA/ISA) Coding",
+      "description": "Reads and programs individual 6-7 digit cylinder injector tolerance calibration values",
+      "ecu_target": "DME / DDE",
+      "diag_address": "0x12",
+      "routine_type": "fuel_system_calibration",
+      "preconditions": [
+        "Engine OFF",
+        "Ignition ON"
+      ],
+      "uds_did": "0xF120",
+      "safety_level": "moderate"
+    }
+  ],
+  "ecu_diagnostic_jobs": {
+    "STATUS_CAS_DIAGNOSE": {
+      "job_id": "1222147",
+      "func_name": "Status-Lesen",
+      "results": [
+        {
+          "name": "SAETZE",
+          "title_en": "Anzahl Ergebnis-Bloecke",
+          "title_de": "Anzahl Ergebnis-Bloecke",
+          "format": "String",
+          "adapter_path": "/Result/Status/SAETZE",
+          "states": {}
+        },
+        {
+          "name": "JOB_STATUS",
+          "title_en": "Job-Status",
+          "title_de": "Job-Status",
+          "format": "String",
+          "adapter_path": "/Result/Status/JOB_STATUS",
+          "states": {
+            "OKAY": "OKAY"
+          }
+        },
+        {
+          "name": "IN_CLT_DISC",
+          "title_en": "Central locking button",
+          "title_de": "Zentralverriegelungstaste",
+          "format": "Binary",
+          "adapter_path": "/Result/Rows/Row[0]/IN_CLT_DISC",
+          "states": {
+            "0": "Not pressed",
+            "1": "Pressed"
+          }
+        }
+      ]
+    },
+    "STATUS_FBD_UBAT": {
+      "job_id": "1222251",
+      "func_name": "Status-Lesen",
+      "results": [
+        {
+          "name": "FBD02_UBAT_STAT_FLAG",
+          "title_en": "Battery transmitter 2",
+          "title_de": "Batterie Sender 2",
+          "format": "Binary",
+          "adapter_path": "/Result/Rows/Row[0]/FBD02_UBAT_STAT_FLAG",
+          "states": {
+            "0": "O.K.",
+            "1": "discharging"
+          }
+        },
+        {
+          "name": "SAETZE",
+          "title_en": "Anzahl Ergebnis-Bloecke",
+          "title_de": "Anzahl Ergebnis-Bloecke",
+          "format": "String",
+          "adapter_path": "/Result/Status/SAETZE",
+          "states": {}
+        },
+        {
+          "name": "FBD07_UBAT_STAT_FLAG",
+          "title_en": "Battery transmitter 7",
+          "title_de": "Batterie Sender 7",
+          "format": "Binary",
+          "adapter_path": "/Result/Rows/Row[0]/FBD07_UBAT_STAT_FLAG",
+          "states": {
+            "0": "O.K.",
+            "1": "discharging"
+          }
+        },
+        {
+          "name": "FBD08_UBAT_STAT_FLAG",
+          "title_en": "Battery transmitter 8",
+          "title_de": "Batterie Sender 8",
+          "format": "Binary",
+          "adapter_path": "/Result/Rows/Row[0]/FBD08_UBAT_STAT_FLAG",
+          "states": {
+            "0": "O.K.",
+            "1": "discharging"
+          }
+        },
+        {
+          "name": "JOB_STATUS",
+          "title_en": "Job-Status",
+          "title_de": "Job-Status",
+          "format": "String",
+          "adapter_path": "/Result/Status/JOB_STATUS",
+          "states": {
+            "OKAY": "OKAY"
+          }
+        },
+        {
+          "name": "FBD05_UBAT_STAT_FLAG",
+          "title_en": "Battery transmitter 5",
+          "title_de": "Batterie Sender 5",
+          "format": "Binary",
+          "adapter_path": "/Result/Rows/Row[0]/FBD05_UBAT_STAT_FLAG",
+          "states": {
+            "0": "O.K.",
+            "1": "discharging"
+          }
+        },
+        {
+          "name": "FBD03_UBAT_STAT_FLAG",
+          "title_en": "Battery transmitter 3",
+          "title_de": "Batterie Sender 3",
+          "format": "Binary",
+          "adapter_path": "/Result/Rows/Row[0]/FBD03_UBAT_STAT_FLAG",
+          "states": {
+            "0": "O.K.",
+            "1": "discharging"
+          }
+        },
+        {
+          "name": "FBD06_UBAT_STAT_FLAG",
+          "title_en": "Battery transmitter 6",
+          "title_de": "Batterie Sender 6",
+          "format": "Binary",
+          "adapter_path": "/Result/Rows/Row[0]/FBD06_UBAT_STAT_FLAG",
+          "states": {
+            "0": "O.K.",
+            "1": "discharging"
+          }
+        },
+        {
+          "name": "FBD09_UBAT_STAT_FLAG",
+          "title_en": "Battery transmitter 9",
+          "title_de": "Batterie Sender 9",
+          "format": "Binary",
+          "adapter_path": "/Result/Rows/Row[0]/FBD09_UBAT_STAT_FLAG",
+          "states": {
+            "0": "O.K.",
+            "1": "discharging"
+          }
+        },
+        {
+          "name": "FBD01_UBAT_STAT_FLAG",
+          "title_en": "Battery transmitter 1",
+          "title_de": "Batterie Sender 1",
+          "format": "Binary",
+          "adapter_path": "/Result/Rows/Row[0]/FBD01_UBAT_STAT_FLAG",
+          "states": {
+            "0": "O.K.",
+            "1": "discharging"
+          }
+        },
+        {
+          "name": "FBD10_UBAT_STAT_FLAG",
+          "title_en": "Battery transmitter 10",
+          "title_de": "Batterie Sender 10",
+          "format": "Binary",
+          "adapter_path": "/Result/Rows/Row[0]/FBD10_UBAT_STAT_FLAG",
+          "states": {
+            "0": "O.K.",
+            "1": "discharging"
+          }
+        },
+        {
+          "name": "FBD04_UBAT_STAT_FLAG",
+          "title_en": "Battery transmitter 4",
+          "title_de": "Batterie Sender 4",
+          "format": "Binary",
+          "adapter_path": "/Result/Rows/Row[0]/FBD04_UBAT_STAT_FLAG",
+          "states": {
+            "0": "O.K.",
+            "1": "discharging"
+          }
+        }
+      ]
+    },
+    "STATUS_SENSOREN": {
+      "job_id": "1226162",
+      "func_name": "Status-Lesen",
+      "results": [
+        {
+          "name": "JOB_STATUS",
+          "title_en": "Job-Status",
+          "title_de": "Job-Status",
+          "format": "String",
+          "adapter_path": "/Result/Status/JOB_STATUS",
+          "states": {
+            "OKAY": "OKAY"
+          }
+        },
+        {
+          "name": "SAETZE",
+          "title_en": "Anzahl Ergebnis-Bloecke",
+          "title_de": "Anzahl Ergebnis-Bloecke",
+          "format": "String",
+          "adapter_path": "/Result/Status/SAETZE",
+          "states": {}
+        },
+        {
+          "name": "STAT_DRUCKSENSOR_1_WERT",
+          "title_en": "Pressure via brake pedal",
+          "title_de": "Druck über Bremspedal",
+          "format": "",
+          "adapter_path": "/Result/Rows/Row[0]/STAT_DRUCKSENSOR_1_WERT",
+          "states": {}
+        }
+      ]
+    },
+    "STATUS_LAMPEN_KURZSCHLUSS": {
+      "job_id": "1243549",
+      "func_name": "Status-Lesen",
+      "results": [
+        {
+          "name": "JOB_STATUS",
+          "title_en": "Job status",
+          "title_de": "Job-Status",
+          "format": "String",
+          "adapter_path": "/Result/Status/JOB_STATUS",
+          "states": {
+            "OKAY": "OKAY"
+          }
+        },
+        {
+          "name": "SAETZE",
+          "title_en": "Number of result blocks",
+          "title_de": "Anzahl Ergebnis-Bloecke",
+          "format": "String",
+          "adapter_path": "/Result/Status/SAETZE",
+          "states": {}
+        },
+        {
+          "name": "STAT_BREMSLICHT_RECHTS_SHORT_CIRCUIT",
+          "title_en": "Tail/brake light, right 1",
+          "title_de": "Schluss-/Bremslicht rechts 1",
+          "format": "Decimal",
+          "adapter_path": "/Result/Rows/Row[0]/STAT_BREMSLICHT_RECHTS_SHORT_CIRCUIT",
+          "states": {
+            "0": "no short circuit",
+            "1": "Short-circuit"
+          }
+        },
+        {
+          "name": "STAT_BREMSLICHT_LINKS_SHORT_CIRCUIT",
+          "title_en": "Tail/brake light, left 1",
+          "title_de": "Schluss-/Bremslicht links 1",
+          "format": "Decimal",
+          "adapter_path": "/Result/Rows/Row[0]/STAT_BREMSLICHT_LINKS_SHORT_CIRCUIT",
+          "states": {
+            "0": "no short circuit",
+            "1": "Short-circuit"
+          }
+        },
+        {
+          "name": "STAT_BREMSLICHT_MITTE_SHORT_CIRCUIT",
+          "title_en": "Brake light, centre",
+          "title_de": "Bremslicht mitte",
+          "format": "Decimal",
+          "adapter_path": "/Result/Rows/Row[0]/STAT_BREMSLICHT_MITTE_SHORT_CIRCUIT",
+          "states": {
+            "0": "no short circuit",
+            "1": "Short-circuit"
+          }
+        }
+      ]
+    },
+    "STATUS_LAMPEN_DIGITAL": {
+      "job_id": "1243556",
+      "func_name": "Status-Lesen",
+      "results": [
+        {
+          "name": "JOB_STATUS",
+          "title_en": "Job-Status",
+          "title_de": "Job-Status",
+          "format": "String",
+          "adapter_path": "/Result/Status/JOB_STATUS",
+          "states": {
+            "OKAY": "OKAY"
+          }
+        },
+        {
+          "name": "STAT_AUSGANG_BREMSLICHT_MITTE_EIN",
+          "title_en": "Output, brake light, centre",
+          "title_de": "Ausgang Bremslicht mitte",
+          "format": "Decimal",
+          "adapter_path": "/Result/Rows/Row[0]/STAT_AUSGANG_BREMSLICHT_MITTE_EIN",
+          "states": {
+            "0": "Off",
+            "1": "On"
+          }
+        },
+        {
+          "name": "STAT_AUSGANG_BREMSLICHT_RECHTS_EIN",
+          "title_en": "Output, tail/brake light, right 2",
+          "title_de": "Ausgang Schluss-/Bremslicht rechts 2",
+          "format": "Decimal",
+          "adapter_path": "/Result/Rows/Row[0]/STAT_AUSGANG_BREMSLICHT_RECHTS_EIN",
+          "states": {
+            "0": "Off",
+            "1": "On"
+          }
+        },
+        {
+          "name": "SAETZE",
+          "title_en": "Number of result blocks",
+          "title_de": "Anzahl Ergebnis-Bloecke",
+          "format": "String",
+          "adapter_path": "/Result/Status/SAETZE",
+          "states": {}
+        },
+        {
+          "name": "STAT_AUSGANG_BREMSLICHT_LINKS_EIN",
+          "title_en": "Output, tail/brake light, left 2",
+          "title_de": "Ausgang Schluss-/Bremslicht links 2",
+          "format": "Decimal",
+          "adapter_path": "/Result/Rows/Row[0]/STAT_AUSGANG_BREMSLICHT_LINKS_EIN",
+          "states": {
+            "0": "Off",
+            "1": "On"
+          }
+        }
+      ]
+    },
+    "STATUS_LESEN_SYSTEMAUDIO": {
+      "job_id": "1260095",
+      "func_name": "Status-Lesen",
+      "results": [
+        {
+          "name": "STAT_AUDIO_SYSTEM",
+          "title_en": "Currently coded audio system",
+          "title_de": "Aktuell kodiertes Audiosystem",
+          "format": "Binary",
+          "adapter_path": "/Result/Rows/Row[0]/STAT_AUDIO_SYSTEM",
+          "states": {
+            "0": "Stereo mode",
+            "0xFF": "Not defined",
+            "1": "Hi-fi",
+            "2": "Top hi-fi",
+            "3": "M Individual Sound"
+          }
+        },
+        {
+          "name": "SAETZE",
+          "title_en": "Anzahl Ergebnis-Bloecke",
+          "title_de": "Anzahl Ergebnis-Bloecke",
+          "format": "String",
+          "adapter_path": "/Result/Status/SAETZE",
+          "states": {}
+        },
+        {
+          "name": "JOB_STATUS",
+          "title_en": "Job-Status",
+          "title_de": "Job-Status",
+          "format": "String",
+          "adapter_path": "/Result/Status/JOB_STATUS",
+          "states": {
+            "OKAY": "OKAY"
+          }
+        }
+      ]
+    },
+    "STATUS_VOLUMEAUDIO": {
+      "job_id": "1260100",
+      "func_name": "Status-Lesen",
+      "results": [
+        {
+          "name": "JOB_STATUS",
+          "title_en": "Job-Status",
+          "title_de": "Job-Status",
+          "format": "String",
+          "adapter_path": "/Result/Status/JOB_STATUS",
+          "states": {
+            "OKAY": "OKAY"
+          }
+        },
+        {
+          "name": "SAETZE",
+          "title_en": "Anzahl Ergebnis-Bloecke",
+          "title_de": "Anzahl Ergebnis-Bloecke",
+          "format": "String",
+          "adapter_path": "/Result/Status/SAETZE",
+          "states": {}
+        },
+        {
+          "name": "STAT_LEVEL_WERT",
+          "title_en": "Volume",
+          "title_de": "Lautstärke",
+          "format": "",
+          "adapter_path": "/Result/Rows/Row[0]/STAT_LEVEL_WERT",
+          "states": {}
+        }
+      ]
+    },
+    "STATUS_LESEN": {
+      "job_id": "1351101",
+      "func_name": "Status-Lesen",
+      "results": [
+        {
+          "name": "STAT_KUEHLKREISLAUF_VENTIL",
+          "title_en": "Status of shut-off valve",
+          "title_de": "Status Absperrventil",
+          "format": "Decimal",
+          "adapter_path": "/Result/Rows/Row[0]/STAT_KUEHLKREISLAUF_VENTIL",
+          "states": {
+            "0": "closed",
+            "1": "open",
+            "2": "regulated",
+            "255": "not defined"
+          }
+        },
+        {
+          "name": "JOB_STATUS",
+          "title_en": "Job status",
+          "title_de": "Job-Status",
+          "format": "String",
+          "adapter_path": "/Result/Status/JOB_STATUS",
+          "states": {}
+        },
+        {
+          "name": "SAETZE",
+          "title_en": "Number, result, blocks",
+          "title_de": "Anzahl-Ergebnis-Bloecke",
+          "format": "String",
+          "adapter_path": "/Result/Status/SAETZE",
+          "states": {}
+        }
+      ]
+    },
+    "STATUS_BT_GERAETENAME": {
+      "job_id": "1302202",
+      "func_name": "Status-Lesen",
+      "results": [
+        {
+          "name": "STAT_BT_GERAETENAME_WERT",
+          "title_en": "Bluetooth device names",
+          "title_de": "Bluetooth Gerätenamen",
+          "format": "",
+          "adapter_path": "/Result/Rows/Row[0]/STAT_BT_GERAETENAME_WERT",
+          "states": {}
+        },
+        {
+          "name": "SAETZE",
+          "title_en": "Anzahl Ergebnis-Bloecke",
+          "title_de": "Anzahl Ergebnis-Bloecke",
+          "format": "String",
+          "adapter_path": "/Result/Status/SAETZE",
+          "states": {}
+        },
+        {
+          "name": "JOB_STATUS",
+          "title_en": "Job-Status",
+          "title_de": "Job-Status",
+          "format": "String",
+          "adapter_path": "/Result/Status/JOB_STATUS",
+          "states": {
+            "OKAY": "OKAY"
+          }
+        }
+      ]
+    },
+    "STEUERN_ROUTINE": {
+      "job_id": "1351020",
+      "func_name": "Bauteil-Ansteuern",
+      "results": [
+        {
+          "name": "STAT_SOC_WERT",
+          "title_en": "Current state of charge",
+          "title_de": "Aktueller Ladezustand",
+          "format": "",
+          "adapter_path": "/Result/Rows/Row[0]/STAT_SOC_WERT",
+          "states": {}
+        },
+        {
+          "name": "JOB_STATUS",
+          "title_en": "Job status",
+          "title_de": "Job-Status",
+          "format": "String",
+          "adapter_path": "/Result/Status/JOB_STATUS",
+          "states": {}
+        },
+        {
+          "name": "SAETZE",
+          "title_en": "Number, result, blocks",
+          "title_de": "Anzahl-Ergebnis-Bloecke",
+          "format": "String",
+          "adapter_path": "/Result/Status/SAETZE",
+          "states": {}
+        }
+      ]
+    }
+  },
+  "sample_abl_retrofits": []
+}

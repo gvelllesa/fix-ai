@@ -10,6 +10,7 @@ import 'modules/auth/screens/sign_in_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
 import 'data/local_cache_service.dart';
+import 'modules/obd/services/offline_database_manager.dart';
 
 /// Sends an operational notification via the server-side `telegram-notify`
 /// Supabase Edge Function. Private bot tokens are never stored in the client.
@@ -84,7 +85,14 @@ void main() async {
     debugPrint('[main] ThemeController init warning: $e');
   }
 
-  // 5. Launch the primary UI
+  // 5. Initialize 100% Offline Database Manager (ISTA, PSdZData, E-Sys Cheat Codes)
+  try {
+    await OfflineDatabaseManager.instance.initialize();
+  } catch (e) {
+    debugPrint('[main] OfflineDatabaseManager init warning: $e');
+  }
+
+  // 6. Launch the primary UI
   try {
     runApp(AiCarApp(themeController: themeController));
   } catch (e, stackTrace) {
