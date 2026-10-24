@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/animations/fix_ai_motion.dart';
+import '../../../core/localization/language_controller.dart';
 import '../../../core/theme/fix_ai_tokens.dart';
 import '../../obd/screens/coding_screen.dart';
 import '../../obd/screens/ecu_scan_screen.dart';
@@ -64,6 +65,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final langCtrl = LanguageController.instance;
+    final isGeo = langCtrl.isGeorgian;
     final isConnected = _conn.protocol.isConnected;
     final vehicleTitle = '${_carProfile['brand'] ?? 'BMW'} ${_carProfile['model'] ?? 'F-Series'}';
     final vehicleChassis = '${_carProfile['chassis'] ?? 'F26'} • ${_carProfile['engine'] ?? 'N20'} • ${_carProfile['year'] ?? '2016'}';
@@ -107,12 +110,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 Text(
-                  'FACTORY DIAGNOSTICS & TUNING',
+                  isGeo ? 'ქარხნული დიაგნოსტიკა და ტიუნინგი' : 'FACTORY DIAGNOSTICS & TUNING',
                   style: TextStyle(
                     color: FixAiTokens.textMuted,
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 0.9,
+                    letterSpacing: 0.7,
                   ),
                 ),
               ],
@@ -120,14 +123,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
+          // Language Switcher Pill (GEO / ENG)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: BouncyPressable(
+              onTap: () async {
+                await langCtrl.toggleLanguage();
+                if (mounted) setState(() {});
+              },
+              borderRadius: BorderRadius.circular(FixAiTokens.radiusPill),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                decoration: BoxDecoration(
+                  color: FixAiTokens.surfaceElevated,
+                  borderRadius: BorderRadius.circular(FixAiTokens.radiusPill),
+                  border: Border.all(
+                    color: FixAiTokens.borderSubtle,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'GEO',
+                      style: TextStyle(
+                        color: isGeo ? FixAiTokens.accentCyan : FixAiTokens.textMuted,
+                        fontSize: 10,
+                        fontWeight: isGeo ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    Container(width: 1, height: 10, color: FixAiTokens.borderSubtle),
+                    const SizedBox(width: 3),
+                    Text(
+                      'ENG',
+                      style: TextStyle(
+                        color: !isGeo ? FixAiTokens.accentCyan : FixAiTokens.textMuted,
+                        fontSize: 10,
+                        fontWeight: !isGeo ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
           // Connection Pill Button with Pulse Indicator
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.only(right: 12, top: 10, bottom: 10),
             child: BouncyPressable(
               onTap: _showConnectionModal,
               borderRadius: BorderRadius.circular(FixAiTokens.radiusPill),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: isConnected
                       ? FixAiTokens.accentEmerald.withValues(alpha: 0.12)
@@ -156,12 +206,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 7),
+                    const SizedBox(width: 6),
                     Text(
-                      isConnected ? 'ENET CONNECTED' : 'OBD CONNECT',
+                      isConnected
+                          ? (isGeo ? 'დაკავშირებულია' : 'CONNECTED')
+                          : (isGeo ? 'დაკავშირება' : 'CONNECT'),
                       style: TextStyle(
                         color: isConnected ? FixAiTokens.accentEmerald : FixAiTokens.textSecondary,
-                        fontSize: 11,
+                        fontSize: 10.5,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.4,
                       ),
@@ -244,21 +296,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       _buildStatusChip(
                         icon: Icons.battery_charging_full_rounded,
                         label: '12.4 V',
-                        sub: 'KL30 Battery',
+                        sub: isGeo ? 'აკუმულატორი' : 'KL30 Battery',
                         color: FixAiTokens.accentEmerald,
                       ),
                       const SizedBox(width: 8),
                       _buildStatusChip(
                         icon: Icons.power_settings_new_rounded,
-                        label: isConnected ? 'KL15 Active' : 'Ignition OFF',
-                        sub: 'Bus Terminal',
+                        label: isConnected
+                            ? (isGeo ? 'KL15 აქტიურია' : 'KL15 Active')
+                            : (isGeo ? 'ანთება გამორთულია' : 'Ignition OFF'),
+                        sub: isGeo ? 'ტერმინალი' : 'Bus Terminal',
                         color: isConnected ? FixAiTokens.accentCyan : FixAiTokens.textMuted,
                       ),
                       const SizedBox(width: 8),
                       _buildStatusChip(
                         icon: Icons.offline_bolt_rounded,
-                        label: '200k+ Codes',
-                        sub: 'Offline DB',
+                        label: isGeo ? '200k+ კოდი' : '200k+ Codes',
+                        sub: isGeo ? 'ოფლაინ ბაზა' : 'Offline DB',
                         color: FixAiTokens.accentAmber,
                       ),
                     ],
@@ -332,12 +386,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 Row(
                                   children: [
                                     Text(
-                                      'FULL VEHICLE DIAGNOSTICS',
+                                      isGeo ? 'სრული დიაგნოსტიკური სკანირება' : 'FULL VEHICLE DIAGNOSTICS',
                                       style: TextStyle(
                                         color: FixAiTokens.textPrimary,
-                                        fontSize: 15,
+                                        fontSize: 14.5,
                                         fontWeight: FontWeight.w800,
-                                        letterSpacing: 0.6,
+                                        letterSpacing: 0.5,
                                       ),
                                     ),
                                     const SizedBox(width: 6),
@@ -347,9 +401,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         color: FixAiTokens.accentEmerald.withValues(alpha: 0.18),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
-                                      child: const Text(
-                                        'FAST',
-                                        style: TextStyle(
+                                      child: Text(
+                                        isGeo ? 'სწრაფი' : 'FAST',
+                                        style: const TextStyle(
                                           color: FixAiTokens.accentEmerald,
                                           fontSize: 9,
                                           fontWeight: FontWeight.bold,
@@ -360,7 +414,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                                 const SizedBox(height: 5),
                                 Text(
-                                  'Scan all 32 ECUs with authentic factory definitions, freeze frames, and clear step-by-step repair guides.',
+                                  isGeo
+                                      ? '32 ბლოკის სკანირება ქარხნული აღწერებით, Freeze Frame-ით და მოგვარების რეგლამენტით.'
+                                      : 'Scan all 32 ECUs with authentic factory definitions, freeze frames, and clear step-by-step repair guides.',
                                   style: TextStyle(
                                     color: FixAiTokens.textSecondary,
                                     fontSize: 12,
@@ -397,7 +453,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'WORKSHOP OPERATIONS & CONTROL',
+                  isGeo ? 'სახელოსნოს მოდულები და მართვა' : 'WORKSHOP OPERATIONS & CONTROL',
                   style: FixAiTokens.sectionHeader,
                 ),
               ],
@@ -417,8 +473,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               StaggeredSlideFade(
                 index: 3,
                 child: _buildFeatureCard(
-                  title: 'Service Routines',
-                  desc: 'Battery register, brake bleed, adaptations',
+                  title: isGeo ? 'სერვის რუტინები' : 'Service Routines',
+                  desc: isGeo ? 'აკუმულატორის რეგისტრაცია, მუხრუჭები, CBS' : 'Battery register, brake bleed, adaptations',
                   icon: Icons.home_repair_service_rounded,
                   accentColor: FixAiTokens.accentAmber,
                   onTap: () => _openScreen(const ServiceFunctionsScreen()),
@@ -427,8 +483,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               StaggeredSlideFade(
                 index: 4,
                 child: _buildFeatureCard(
-                  title: 'Live Telemetry',
-                  desc: 'High-speed UDS gauges, boost, AFR, temps',
+                  title: isGeo ? 'Live ტელემეტრია' : 'Live Telemetry',
+                  desc: isGeo ? 'მაღალსიჩქარიანი UDS სენსორები, ბუსტი, AFR' : 'High-speed UDS gauges, boost, AFR, temps',
                   icon: Icons.speed_rounded,
                   accentColor: FixAiTokens.accentCyan,
                   onTap: () => _openScreen(LiveTelemetryScreen(activeProtocol: _conn.protocol)),
@@ -437,8 +493,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               StaggeredSlideFade(
                 index: 5,
                 child: _buildFeatureCard(
-                  title: 'Factory Coding',
-                  desc: 'SALAPA orders, FDL cheat codes, backups',
+                  title: isGeo ? 'ქარხნული კოდირება' : 'Factory Coding',
+                  desc: isGeo ? 'SALAPA შეკვეთა, FDL Cheat კოდები, ასლები' : 'SALAPA orders, FDL cheat codes, backups',
                   icon: Icons.terminal_rounded,
                   accentColor: FixAiTokens.accentPurple,
                   onTap: () => _openScreen(const CodingScreen()),
@@ -447,8 +503,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               StaggeredSlideFade(
                 index: 6,
                 child: _buildFeatureCard(
-                  title: 'Flash & Calibrate',
-                  desc: 'Custom ROM features, TCU transmissions',
+                  title: isGeo ? 'DME & TCU ჩაწერა' : 'Flash & Calibrate',
+                  desc: isGeo ? 'Custom ROM ფუნქციები, გადაცემათა კოლოფი' : 'Custom ROM features, TCU transmissions',
                   icon: Icons.bolt_rounded,
                   accentColor: FixAiTokens.accentAmber,
                   onTap: () => _openScreen(FlashTuningScreen(activeProtocol: _conn.protocol)),
@@ -457,8 +513,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               StaggeredSlideFade(
                 index: 7,
                 child: _buildFeatureCard(
-                  title: 'xDrive AWD Control',
-                  desc: 'Dynamic AWD torque split, 100% RWD drift',
+                  title: isGeo ? 'xDrive AWD მართვა' : 'xDrive AWD Control',
+                  desc: isGeo ? 'დინამიური განაწილება, 100% RWD დრიფტი' : 'Dynamic AWD torque split, 100% RWD drift',
                   icon: Icons.alt_route_rounded,
                   accentColor: FixAiTokens.accentCyan,
                   onTap: () => _openScreen(const XDriveControlScreen()),
@@ -467,8 +523,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               StaggeredSlideFade(
                 index: 8,
                 child: _buildFeatureCard(
-                  title: 'ECU Topology Tree',
-                  desc: 'Scan 32 ECUs, module identification DIDs',
+                  title: isGeo ? 'ECU ტოპოლოგიის ხე' : 'ECU Topology Tree',
+                  desc: isGeo ? '32 ბლოკის სკანირება, DID იდენტიფიკატორები' : 'Scan 32 ECUs, module identification DIDs',
                   icon: Icons.hub_rounded,
                   accentColor: FixAiTokens.accentEmerald,
                   onTap: () => _openScreen(EcuScanScreen(activeProtocol: _conn.protocol)),

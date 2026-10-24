@@ -52,6 +52,9 @@ android {
             }
             isMinifyEnabled = false
             isShrinkResources = false
+            ndk {
+                debugSymbolLevel = "none"
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -80,3 +83,7 @@ dependencies {
     implementation("androidx.concurrent:concurrent-futures:1.2.0")
 }
 
+
+tasks.matching { it.name.contains("NativeDebugMetadata") }.configureEach {
+    enabled = false
+}

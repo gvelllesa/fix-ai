@@ -323,8 +323,8 @@ class SmoothSlidePageRoute<T> extends PageRouteBuilder<T> {
   SmoothSlidePageRoute({required this.page})
       : super(
           pageBuilder: (context, animation, secondaryAnimation) => page,
-          transitionDuration: const Duration(milliseconds: 320),
-          reverseTransitionDuration: const Duration(milliseconds: 260),
+          transitionDuration: const Duration(milliseconds: 260),
+          reverseTransitionDuration: const Duration(milliseconds: 220),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             final curvedIn = CurvedAnimation(
               parent: animation,
@@ -338,7 +338,7 @@ class SmoothSlidePageRoute<T> extends PageRouteBuilder<T> {
             ).animate(curvedIn);
 
             final scaleAnimation = Tween<double>(
-              begin: 0.98,
+              begin: 0.985,
               end: 1.0,
             ).animate(curvedIn);
 
@@ -359,4 +359,56 @@ class SmoothSlidePageRoute<T> extends PageRouteBuilder<T> {
             );
           },
         );
+}
+
+/// Global PageTransitionsBuilder for smooth, elegant transitions across all routes
+class FixAiPageTransitionsBuilder extends PageTransitionsBuilder {
+  const FixAiPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final curvedIn = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    final curvedSecondary = CurvedAnimation(
+      parent: secondaryAnimation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+
+    final slideIn = Tween<Offset>(
+      begin: const Offset(0.05, 0),
+      end: Offset.zero,
+    ).animate(curvedIn);
+
+    final slideOut = Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(-0.02, 0),
+    ).animate(curvedSecondary);
+
+    final fadeIn = Tween<double>(begin: 0.0, end: 1.0).animate(curvedIn);
+    final fadeOut = Tween<double>(begin: 1.0, end: 0.88).animate(curvedSecondary);
+
+    return SlideTransition(
+      position: slideOut,
+      child: FadeTransition(
+        opacity: fadeOut,
+        child: SlideTransition(
+          position: slideIn,
+          child: FadeTransition(
+            opacity: fadeIn,
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
 }

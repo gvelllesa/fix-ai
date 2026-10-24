@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/animations/fix_ai_motion.dart';
+import '../../../core/localization/language_controller.dart';
 import '../../../core/theme/fix_ai_tokens.dart';
 import '../services/bmw_vtg_manager.dart';
 import '../services/protocols/enet_hsfz_protocol.dart';
@@ -361,6 +362,9 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final langCtrl = LanguageController.instance;
+    final isGeo = langCtrl.isGeorgian;
+
     return Scaffold(
       backgroundColor: FixAiTokens.canvas,
       appBar: AppBar(
@@ -379,7 +383,7 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'xDrive Mode',
+                isGeo ? 'xDrive AWD კონტროლი' : 'xDrive Mode',
                 overflow: TextOverflow.ellipsis,
                 style: FixAiTokens.titleMedium,
               ),
@@ -387,12 +391,56 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
           ],
         ),
         actions: [
+          Center(
+            child: InkWell(
+              onTap: () async {
+                await langCtrl.toggleLanguage();
+                if (mounted) setState(() {});
+              },
+              borderRadius: BorderRadius.circular(FixAiTokens.radiusPill),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                margin: const EdgeInsets.only(right: 6),
+                decoration: BoxDecoration(
+                  color: FixAiTokens.surfaceElevated,
+                  borderRadius: BorderRadius.circular(FixAiTokens.radiusPill),
+                  border: Border.all(color: FixAiTokens.borderSubtle, width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'GEO',
+                      style: TextStyle(
+                        color: isGeo ? FixAiTokens.accentCyan : FixAiTokens.textMuted,
+                        fontSize: 10,
+                        fontWeight: isGeo ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    Container(width: 1, height: 10, color: FixAiTokens.borderSubtle),
+                    const SizedBox(width: 3),
+                    Text(
+                      'ENG',
+                      style: TextStyle(
+                        color: !isGeo ? FixAiTokens.accentCyan : FixAiTokens.textMuted,
+                        fontSize: 10,
+                        fontWeight: !isGeo ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           IconButton(
             icon: Icon(
               _vtgManager.isPollingTelemetry ? Icons.sensors_rounded : Icons.sensors_off_rounded,
               color: _vtgManager.isPollingTelemetry ? FixAiTokens.accentEmerald : FixAiTokens.textMuted,
             ),
-            tooltip: _vtgManager.isPollingTelemetry ? 'Pause Telemetry' : 'Resume Telemetry',
+            tooltip: _vtgManager.isPollingTelemetry
+                ? (isGeo ? 'ტელემეტრიის შეჩერება' : 'Pause Telemetry')
+                : (isGeo ? 'ტელემეტრიის განახლება' : 'Resume Telemetry'),
             onPressed: () {
               setState(() {
                 if (_vtgManager.isPollingTelemetry) {
@@ -405,7 +453,7 @@ class _XDriveControlScreenState extends State<XDriveControlScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: FixAiTokens.textSecondary),
-            tooltip: 'Re-ping VTG',
+            tooltip: isGeo ? 'VTG პინგის განახლება' : 'Re-ping VTG',
             onPressed: _initConnection,
           ),
         ],

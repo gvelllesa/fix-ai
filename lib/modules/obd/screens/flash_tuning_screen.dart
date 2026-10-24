@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/localization/language_controller.dart';
 import '../../../core/config/feature_flags.dart';
 import '../services/actuation_guard.dart';
 import '../services/flash_os_guard.dart';
@@ -9,6 +10,7 @@ import '../services/bmw_live_actuator.dart';
 import '../services/bmw_flash_manager.dart';
 import '../services/bmw_custom_rom_service.dart';
 import '../services/protocols/enet_hsfz_protocol.dart';
+import '../services/connection_manager.dart';
 import '../widgets/slide_to_confirm.dart';
 import '../widgets/link_status_bar.dart';
 
@@ -62,13 +64,18 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
   int _wastegateActuationDc = 50;
   bool _isActuatorLoading = false;
 
+  bool get _isOnline =>
+      (widget.activeProtocol?.isConnected ?? false) ||
+      ConnectionManager.instance.protocol.isConnected;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _liveActuator = BmwLiveActuator(protocol: widget.activeProtocol);
-    _flashManager = BmwFlashManager(protocol: widget.activeProtocol);
-    _customRomService = BmwCustomRomService(protocol: widget.activeProtocol);
+    final activeProto = widget.activeProtocol ?? ConnectionManager.instance.protocol;
+    _liveActuator = BmwLiveActuator(protocol: activeProto);
+    _flashManager = BmwFlashManager(protocol: activeProto);
+    _customRomService = BmwCustomRomService(protocol: activeProto);
     _loadCustomRomState();
   }
 
@@ -162,7 +169,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
   }
 
   Future<void> _switchSlot(CustomRomSlot slot) async {
-    final isOnline = widget.activeProtocol?.isConnected ?? false;
+    final isOnline = _isOnline;
     if (!isOnline) {
       setState(() {
         _activeSlot = slot;
@@ -170,7 +177,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('⚡ Preview რეჟიმი: არჩეულია ${slot.title} (სპიდომეტრის ისარი: ${slot.clusterTachRpm} RPM).'),
+          content: Text('Preview რეჟიმი: არჩეულია ${slot.title} (სპიდომეტრის ისარი: ${slot.clusterTachRpm} RPM).'),
           backgroundColor: const Color(0xFF161B22),
           duration: const Duration(seconds: 3),
         ),
@@ -193,7 +200,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
         SnackBar(
           content: Text(
             ok
-                ? '⚡ Multimap switched to ${slot.title}! Cluster tach swept to ${slot.clusterTachRpm} RPM.'
+                ? 'Multimap switched to ${slot.title}! Cluster tach swept to ${slot.clusterTachRpm} RPM.'
                 : 'Failed to switch map slot. Verify Custom ROM bootloader unlock.',
           ),
           backgroundColor: ok ? Colors.green.shade800 : Colors.red.shade900,
@@ -203,12 +210,12 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
   }
 
   Future<void> _triggerCruiseResNeedle() async {
-    final isOnline = widget.activeProtocol?.isConnected ?? false;
+    final isOnline = _isOnline;
     if (!isOnline) {
       setState(() => _tachometerRpm = _activeSlot.clusterTachRpm);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('🎯 Preview რეჟიმი: Cruise "RES" ისარი: $_tachometerRpm RPM (${_activeSlot.title}).'),
+          content: Text('Preview რეჟიმი: Cruise "RES" ისარი: $_tachometerRpm RPM (${_activeSlot.title}).'),
           backgroundColor: Colors.cyan.shade900,
           duration: const Duration(seconds: 3),
         ),
@@ -228,7 +235,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
         SnackBar(
           content: Text(
             ok
-                ? '🎯 Cruise "RES" triggered! Cluster tach needle indicating $_tachometerRpm RPM (${_activeSlot.title}).'
+                ? 'Cruise "RES" triggered! Cluster tach needle indicating $_tachometerRpm RPM (${_activeSlot.title}).'
                 : 'Cruise RES signal sent. Check CAN/HSFZ connection.',
           ),
           backgroundColor: ok ? Colors.cyan.shade800 : Colors.amber.shade900,
@@ -238,7 +245,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
   }
 
   Future<void> _triggerAntiLagLive() async {
-    final isOnline = widget.activeProtocol?.isConnected ?? false;
+    final isOnline = _isOnline;
     if (!isOnline) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -270,7 +277,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
         SnackBar(
           content: Text(
             ok
-                ? '🔥 Rolling Anti-Lag ACTIVATED! Cruise rocker held. Retard: ${_options.antiLag.ignitionRetardDeg}° ATDC | Target: ${_options.antiLag.boostTargetPsi} PSI.'
+                ? 'Rolling Anti-Lag ACTIVATED! Cruise rocker held. Retard: ${_options.antiLag.ignitionRetardDeg}° ATDC | Target: ${_options.antiLag.boostTargetPsi} PSI.'
                 : 'Rolling Anti-Lag routine command sent (UDS 0x31 0xD421).',
           ),
           backgroundColor: ok ? Colors.orange.shade900 : Colors.grey.shade900,
@@ -280,7 +287,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
   }
 
   Future<void> _saveAntiLagDmeRam() async {
-    final isOnline = widget.activeProtocol?.isConnected ?? false;
+    final isOnline = _isOnline;
     if (!isOnline) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -297,7 +304,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
         SnackBar(
           content: Text(
             ok
-                ? '💾 Rolling Anti-Lag settings written to DME RAM DID 0xD420!'
+                ? 'Rolling Anti-Lag settings written to DME RAM DID 0xD420!'
                 : 'Failed to write Anti-Lag DID. Verify Custom ROM unlock.',
           ),
           backgroundColor: ok ? Colors.green.shade800 : Colors.red.shade900,
@@ -307,7 +314,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
   }
 
   Future<void> _testKnockCelFlash() async {
-    final isOnline = widget.activeProtocol?.isConnected ?? false;
+    final isOnline = _isOnline;
     if (!isOnline) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -329,7 +336,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
         SnackBar(
           content: Text(
             ok
-                ? '🚨 Knock CEL Alert triggered on cluster KOMBI (4 pulses @ ${_options.knockCel.flashRateHz}Hz)!'
+                ? 'Knock CEL Alert triggered on cluster KOMBI (4 pulses @ ${_options.knockCel.flashRateHz}Hz)!'
                 : 'Knock CEL routine command sent to cluster (0x60 / 0xD466).',
           ),
           backgroundColor: ok ? Colors.amber.shade900 : Colors.red.shade900,
@@ -339,7 +346,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
   }
 
   Future<void> _testShiftBrapLive() async {
-    final isOnline = widget.activeProtocol?.isConnected ?? false;
+    final isOnline = _isOnline;
     if (!isOnline) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -358,7 +365,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
         SnackBar(
           content: Text(
             ok
-                ? '💥 Transmission Shift Brap pulse actuated (Spark Cut ${_options.shiftBrap.durationMs}ms)!'
+                ? 'Transmission Shift Brap pulse actuated (Spark Cut ${_options.shiftBrap.durationMs}ms)!'
                 : 'Shift Brap routine sent to DME (UDS 0x31 0xD461).',
           ),
           backgroundColor: ok ? Colors.deepOrange.shade800 : Colors.grey.shade900,
@@ -368,7 +375,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
   }
 
   Future<void> _flashTcuOptionsToEgs() async {
-    final isOnline = widget.activeProtocol?.isConnected ?? false;
+    final isOnline = _isOnline;
     if (!isOnline) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -387,7 +394,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
         SnackBar(
           content: Text(
             ok
-                ? '⚡ TCU Transmission Calibration written to EGS (0x18 / DID 0xD440) successfully!'
+                ? 'TCU Transmission Calibration written to EGS (0x18 / DID 0xD440) successfully!'
                 : 'Failed to write TCU calibration to EGS ECU 0x18. Verify OBD/ENET connection.',
           ),
           backgroundColor: ok ? Colors.green.shade800 : Colors.red.shade900,
@@ -397,7 +404,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
   }
 
   Future<void> _writeDmeCustomOptionsLive() async {
-    final isOnline = widget.activeProtocol?.isConnected ?? false;
+    final isOnline = _isOnline;
     if (!isOnline) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -416,7 +423,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
         SnackBar(
           content: Text(
             ok
-                ? '⚡ DME Custom Options (Burble, Cold Start, VMAX, Exhaust Flap) წარმატებით ჩაიწერა (DIDs 0xD408-0xD40B)!'
+                ? 'DME Custom Options (Burble, Cold Start, VMAX, Exhaust Flap) წარმატებით ჩაიწერა (DIDs 0xD408-0xD40B)!'
                 : 'DME Custom Options ჩაწერა გადაიგზავნა DME ECU-ში.',
           ),
           backgroundColor: ok ? Colors.green.shade800 : Colors.grey.shade900,
@@ -426,11 +433,11 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
   }
 
   Future<void> _refreshFlexFuel() async {
-    final isOnline = widget.activeProtocol?.isConnected ?? false;
+    final isOnline = _isOnline;
     if (!isOnline) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('🌾 ავტომობილი გამორთულია. ნაჩვენებია შენახული FlexFuel პარამეტრები.'),
+          content: Text('ავტომობილი გამორთულია. ნაჩვენებია შენახული FlexFuel პარამეტრები.'),
           backgroundColor: Color(0xFF161B22),
         ),
       );
@@ -449,7 +456,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
         SnackBar(
           content: Text(
             ff != null
-                ? '🌾 FlexFuel live data refreshed: ${ff.ethanolPercent.toInt()}% Ethanol (${ff.fuelTempCelsius.toInt()}°C)'
+                ? 'FlexFuel live data refreshed: ${ff.ethanolPercent.toInt()}% Ethanol (${ff.fuelTempCelsius.toInt()}°C)'
                 : 'DME RAM DID 0xD410 read failed. Check adapter connection.',
           ),
           backgroundColor: ff != null ? Colors.green.shade800 : Colors.red.shade900,
@@ -500,7 +507,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                ok ? '🔒 Anti-Theft Armed! Fuel injection & starter disabled.' : 'Failed to arm Anti-Theft.',
+                ok ? 'Anti-Theft Armed! Fuel injection & starter disabled.' : 'Failed to arm Anti-Theft.',
               ),
               backgroundColor: ok ? Colors.red.shade900 : Colors.grey.shade900,
             ),
@@ -582,7 +589,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      ok ? '🔓 Anti-Theft Disarmed! Engine injection restored.' : 'PIN authentication failed.',
+                      ok ? 'Anti-Theft Disarmed! Engine injection restored.' : 'PIN authentication failed.',
                     ),
                     backgroundColor: ok ? Colors.green.shade800 : Colors.red.shade900,
                   ),
@@ -610,7 +617,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
         SnackBar(
           content: Text(
             success
-                ? (targetState ? '⚡ Max Cooling Mode ACTIVATED (Pump & Fan 100%)' : 'Max Cooling returned to DME Control')
+                ? (targetState ? 'Max Cooling Mode ACTIVATED (Pump & Fan 100%)' : 'Max Cooling returned to DME Control')
                 : 'Failed to actuate cooling pump. Check ENET/OBD connection.',
           ),
           backgroundColor: success ? (targetState ? Colors.cyan.shade800 : Colors.green.shade800) : Colors.red.shade900,
@@ -632,7 +639,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
         SnackBar(
           content: Text(
             success
-                ? (targetState ? '🔊 Exhaust Flap FORCED OPEN' : 'Exhaust Flap RETURNED TO DME CONTROL')
+                ? (targetState ? 'Exhaust Flap FORCED OPEN' : 'Exhaust Flap RETURNED TO DME CONTROL')
                 : 'Failed to actuate exhaust flap.',
           ),
           backgroundColor: success ? Colors.green.shade800 : Colors.red.shade900,
@@ -658,7 +665,7 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
         SnackBar(
           content: Text(
             success
-                ? '⚡ Pneumatic Wastegate PWM set to $dc% Duty Cycle'
+                ? 'Pneumatic Wastegate PWM set to $dc% Duty Cycle'
                 : 'Failed to actuate wastegate solenoid. Verify DME session.',
           ),
           backgroundColor: success ? Colors.cyan.shade800 : Colors.red.shade900,
@@ -922,24 +929,87 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
+    final langCtrl = LanguageController.instance;
+    final isGeo = langCtrl.isGeorgian;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       appBar: AppBar(
         backgroundColor: const Color(0xFF161B22),
         elevation: 0,
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.tune, color: Colors.greenAccent, size: 22),
-            SizedBox(width: 10),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: _isOnline ? Colors.greenAccent : Colors.redAccent,
+                shape: BoxShape.circle,
+                boxShadow: _isOnline
+                    ? [
+                        BoxShadow(
+                          color: Colors.greenAccent.withValues(alpha: 0.6),
+                          blurRadius: 6,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'BMW DME Tuning',
+                isGeo ? 'DME / ECU დაპროგრამება' : 'BMW DME Tuning',
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
           ],
         ),
+        actions: [
+          Center(
+            child: InkWell(
+              onTap: () async {
+                await langCtrl.toggleLanguage();
+                if (mounted) setState(() {});
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                margin: const EdgeInsets.only(right: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white24, width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'GEO',
+                      style: TextStyle(
+                        color: isGeo ? Colors.greenAccent : Colors.white38,
+                        fontSize: 10,
+                        fontWeight: isGeo ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    Container(width: 1, height: 10, color: Colors.white24),
+                    const SizedBox(width: 3),
+                    Text(
+                      'ENG',
+                      style: TextStyle(
+                        color: !isGeo ? Colors.greenAccent : Colors.white38,
+                        fontSize: 10,
+                        fontWeight: !isGeo ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -947,10 +1017,10 @@ class _FlashTuningScreenState extends State<FlashTuningScreen> with SingleTicker
           indicatorColor: Colors.greenAccent,
           labelColor: Colors.greenAccent,
           unselectedLabelColor: Colors.white60,
-          tabs: const [
-            Tab(icon: Icon(Icons.flash_auto, size: 18), text: 'Custom ROM'),
-            Tab(icon: Icon(Icons.memory, size: 18), text: 'OTS Maps'),
-            Tab(icon: Icon(Icons.bolt, size: 18), text: 'Actuators'),
+          tabs: [
+            Tab(icon: const Icon(Icons.flash_auto, size: 18), text: isGeo ? 'Custom ROM' : 'Custom ROM'),
+            Tab(icon: const Icon(Icons.memory, size: 18), text: isGeo ? 'OTS რუკები' : 'OTS Maps'),
+            Tab(icon: const Icon(Icons.bolt, size: 18), text: isGeo ? 'აქტუატორები' : 'Actuators'),
           ],
         ),
       ),

@@ -109,7 +109,7 @@ class PartsFinderService {
 
     for (final r in results) {
       final priceStr = r.price != null ? '${r.price!.toStringAsFixed(2)} ${r.currency}' : 'See link';
-      final oemStr = r.isOem ? '✅ OEM' : '🔧 Aftermarket';
+      final oemStr = r.isOem ? '[OEM]' : '[Aftermarket]';
       final linkStr = r.url != null ? '[View](${r.url})' : '-';
       sb.writeln('| ${r.storeName} | $priceStr | $oemStr | $linkStr |');
     }

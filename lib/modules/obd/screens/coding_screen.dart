@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/localization/language_controller.dart';
 import '../services/protocols/enet_hsfz_protocol.dart';
 import '../services/bmw_coding_service.dart';
 import '../services/bmw_ecu_scanner.dart';
@@ -1818,6 +1819,9 @@ class _CodingScreenState extends State<CodingScreen>
 
   @override
   Widget build(BuildContext context) {
+    final langCtrl = LanguageController.instance;
+    final isGeo = langCtrl.isGeorgian;
+
     return Scaffold(
       backgroundColor: _bgDark,
       appBar: AppBar(
@@ -1833,11 +1837,29 @@ class _CodingScreenState extends State<CodingScreen>
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Flexible(
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: _isConnected ? _neonGreen : _neonRed,
+                    shape: BoxShape.circle,
+                    boxShadow: _isConnected
+                        ? [
+                            BoxShadow(
+                              color: _neonGreen.withValues(alpha: 0.6),
+                              blurRadius: 6,
+                              spreadRadius: 1,
+                            ),
+                          ]
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
                   child: Text(
-                    'BMW CODING',
+                    isGeo ? 'BMW კოდირება' : 'BMW CODING',
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w900,
                       fontSize: 13,
@@ -1880,22 +1902,52 @@ class _CodingScreenState extends State<CodingScreen>
           ],
         ),
         actions: [
-          IconButton(
-            icon: Icon(
-              Icons.cable,
-              color: _isConnected ? _neonGreen : Colors.white38,
+          // Language Switcher Pill (GEO / ENG)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+            child: InkWell(
+              onTap: () async {
+                await LanguageController.instance.toggleLanguage();
+                if (mounted) setState(() {});
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'GEO',
+                      style: TextStyle(
+                        color: isGeo ? _neonCyan : Colors.white38,
+                        fontSize: 10,
+                        fontWeight: isGeo ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    const Text('/', style: TextStyle(color: Colors.white24, fontSize: 10)),
+                    const SizedBox(width: 3),
+                    Text(
+                      'ENG',
+                      style: TextStyle(
+                        color: !isGeo ? _neonCyan : Colors.white38,
+                        fontSize: 10,
+                        fontWeight: !isGeo ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            tooltip: 'Adapter Link Options',
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (c) => const AdvancedConnectionDialog(),
-              ).then((_) => _initializeVehicleLink());
-            },
           ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white70),
-            tooltip: 'Refresh Status',
+            tooltip: isGeo ? 'სტატუსის განახლება' : 'Refresh Status',
             onPressed: () async {
               await _refreshVehicleVitals();
               await _scanVehicleCodingStatus();
@@ -1911,22 +1963,22 @@ class _CodingScreenState extends State<CodingScreen>
           labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           isScrollable: true,
           tabAlignment: TabAlignment.start,
-          tabs: const [
+          tabs: [
             Tab(
-              icon: Icon(Icons.tune, size: 20),
-              text: '1-Tap Cheat Codes',
+              icon: const Icon(Icons.tune, size: 20),
+              text: isGeo ? '1-Tap Cheat კოდები' : '1-Tap Cheat Codes',
             ),
             Tab(
-              icon: Icon(Icons.directions_car, size: 20),
-              text: 'Vehicle Order (VO / FA)',
+              icon: const Icon(Icons.directions_car, size: 20),
+              text: isGeo ? 'სატრანსპორტო შეკვეთა (VO / FA)' : 'Vehicle Order (VO / FA)',
             ),
             Tab(
-              icon: Icon(Icons.history_toggle_off, size: 20),
-              text: 'Shadow Memory',
+              icon: const Icon(Icons.history_toggle_off, size: 20),
+              text: isGeo ? 'ჩრდილოვანი მეხსიერება' : 'Shadow Memory',
             ),
             Tab(
-              icon: Icon(Icons.backup, size: 20),
-              text: 'Coding Backups',
+              icon: const Icon(Icons.backup, size: 20),
+              text: isGeo ? 'NCD სარეზერვო ასლები' : 'Coding Backups',
             ),
           ],
         ),

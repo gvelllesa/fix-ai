@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/localization/language_controller.dart';
 import '../services/bmw_service_functions.dart';
 import '../services/protocols/enet_hsfz_protocol.dart';
 import '../widgets/advanced_connection_dialog.dart';
+import '../../../core/theme/fix_ai_tokens.dart';
 
 /// BMW Dealer-Level Workshop Routines & Service Functions Screen
 ///
@@ -1170,11 +1172,11 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
 
                 if (event['step'] == 'COMPLETE') {
                   setModalState(() {
-                    cornerStatuses[corner] = 'Completed ✓';
+                    cornerStatuses[corner] = 'Completed [OK]';
                   });
                 } else if (event['step'] == 'FAILED' || event['step'] == 'EXCEPTION') {
                   setModalState(() {
-                    cornerStatuses[corner] = 'Failed ✗';
+                    cornerStatuses[corner] = 'Failed [FAIL]';
                   });
                 }
               }
@@ -3682,68 +3684,111 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
   // ===========================================================================
   @override
   Widget build(BuildContext context) {
+    final langCtrl = LanguageController.instance;
+    final isGeo = langCtrl.isGeorgian;
+
     return Scaffold(
       backgroundColor: _bgDark,
       appBar: AppBar(
         backgroundColor: _cardDark,
         elevation: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Workshop Routines',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 6,
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: _isConnected ? Colors.greenAccent : Colors.redAccent,
-                    shape: BoxShape.circle,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isGeo ? 'სერვისის ფუნქციები' : 'Dealer Service Routines',
+                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: _isConnected ? FixAiTokens.accentEmerald : FixAiTokens.accentRose,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                ),
-                Text(
-                  _isConnected ? 'ENET/HSFZ Online' : 'Vehicle Disconnected',
-                  style: TextStyle(
-                    color: _isConnected ? Colors.greenAccent : Colors.redAccent,
-                    fontSize: 11,
-                  ),
-                ),
-                if (_liveVoltage != null)
+                  const SizedBox(width: 6),
                   Text(
-                    '${_liveVoltage!.toStringAsFixed(1)}V',
-                    style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                    _isConnected
+                        ? (isGeo ? 'დაკავშირებულია' : 'Connected')
+                        : (isGeo ? 'გათიშულია' : 'Disconnected'),
+                    style: TextStyle(
+                      color: _isConnected ? FixAiTokens.accentEmerald : FixAiTokens.accentRose,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                if (_odometerKm != null)
-                  Text(
-                    '$_odometerKm km',
-                    style: const TextStyle(color: Colors.white38, fontSize: 11),
-                  ),
-              ],
-            ),
-          ],
+                  if (_liveVoltage != null) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      '${_liveVoltage!.toStringAsFixed(1)}V',
+                      style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                  if (_odometerKm != null) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      '$_odometerKm km',
+                      style: const TextStyle(color: Colors.white38, fontSize: 11),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_ethernet, color: Colors.cyanAccent),
-            tooltip: 'Adapter Setup',
-            onPressed: () async {
-              final result = await showDialog<Map<String, dynamic>>(
-                context: context,
-                builder: (c) => const AdvancedConnectionDialog(),
-              );
-              if (result != null && result['status'] == 'connected') {
-                _checkInitialConnection();
-              }
-            },
+          // Language Switcher Pill (GEO / ENG)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+            child: InkWell(
+              onTap: () async {
+                await LanguageController.instance.toggleLanguage();
+                if (mounted) setState(() {});
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'GEO',
+                      style: TextStyle(
+                        color: isGeo ? FixAiTokens.accentCyan : Colors.white38,
+                        fontSize: 10,
+                        fontWeight: isGeo ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    const Text('/', style: TextStyle(color: Colors.white24, fontSize: 10)),
+                    const SizedBox(width: 3),
+                    Text(
+                      'ENG',
+                      style: TextStyle(
+                        color: !isGeo ? FixAiTokens.accentCyan : Colors.white38,
+                        fontSize: 10,
+                        fontWeight: !isGeo ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white70),
-            tooltip: 'Refresh Status',
+            tooltip: isGeo ? 'სტატუსის განახლება' : 'Refresh Status',
             onPressed: _refreshVehicleState,
           ),
         ],
@@ -4519,30 +4564,40 @@ class _ServiceFunctionsScreenState extends State<ServiceFunctionsScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Wrap(
-                      alignment: WrapAlignment.spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 8,
-                      runSpacing: 6,
+                    Row(
                       children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.straighten_rounded, color: Colors.white38, size: 14),
-                            const SizedBox(width: 4),
-                            Text(
-                              item.formattedRemainingKm,
-                              style: const TextStyle(color: Colors.white70, fontSize: 11),
-                            ),
-                            const SizedBox(width: 8),
-                            const Icon(Icons.calendar_month_rounded, color: Colors.white38, size: 14),
-                            const SizedBox(width: 4),
-                            Text(
-                              item.formattedExpiry,
-                              style: const TextStyle(color: Colors.white70, fontSize: 11),
-                            ),
-                          ],
+                        Expanded(
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.straighten_rounded, color: Colors.white38, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    item.formattedRemainingKm,
+                                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.calendar_month_rounded, color: Colors.white38, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    item.formattedExpiry,
+                                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         ElevatedButton.icon(
                           onPressed: _isActionRunning ? null : () => _handleResetCbsItem(item),
                           icon: const Icon(Icons.restart_alt, size: 14),

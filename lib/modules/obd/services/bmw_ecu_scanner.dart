@@ -285,19 +285,19 @@ class BmwEcuScanner {
       EcuInfo(address: 0x56, name: 'FZD', description: 'Function Zone Dome / Roof Function Center'),
       EcuInfo(address: 0x78, name: 'IHKA', description: 'Integrated Automatic Heating & Climate Control (BMW KIS: F025 0x78)'),
       EcuInfo(address: 0x3F, name: 'VDC/EDC', description: 'Variable / Electronic Damper Control (Adaptive M)'),
-      EcuInfo(address: 0x6E, name: 'EHC', description: 'Electronic Height Control / Pneumatic Air Suspension'),
+      EcuInfo(address: 0x6E, name: 'SMBF', description: 'Seat Module Passenger / Sitzmodul Beifahrer (SM [6e])'),
       EcuInfo(address: 0x5D, name: 'KAFAS', description: 'Camera-Based Driver Assistance Systems'),
       EcuInfo(address: 0x1C, name: 'ICM', description: 'Integrated Chassis Management (BMW KIS: F025 0x1C)'),
       EcuInfo(address: 0x2C, name: 'PMA', description: 'Parking Maneuvering Assistant (BMW KIS: F025 0x2C)'),
       EcuInfo(address: 0x43, name: 'FLEL', description: 'Front Light Electronics Left (Adaptive LED/Laser)'),
       EcuInfo(address: 0x44, name: 'FLER', description: 'Front Light Electronics Right (Adaptive LED/Laser)'),
-      EcuInfo(address: 0x67, name: 'PMA', description: 'Parking Maneuvering Assistant'),
+      EcuInfo(address: 0x67, name: 'ZBE', description: 'iDrive Touch Controller / Zentrale Bedieneinheit (ZBE)'),
       EcuInfo(address: 0x64, name: 'PDC', description: 'Park Distance Control'),
       EcuInfo(address: 0x5E, name: 'TRSVC', description: 'Top / Rear / Side View Surround Camera System'),
-      EcuInfo(address: 0x20, name: 'AMP', description: 'High-End Audio Amplifier (Harman Kardon / Bowers & Wilkins)'),
+      EcuInfo(address: 0x20, name: 'RDC', description: 'Tire Pressure Monitor (RDC) / Audio Amplifier'),
       EcuInfo(address: 0x38, name: 'TCB/ATM', description: 'Telematics Communication Box / ATM 4G LTE'),
-      EcuInfo(address: 0x58, name: 'SMFA', description: 'Seat Module Driver / Sitzmodul Fahrer'),
-      EcuInfo(address: 0x59, name: 'SMBF', description: 'Seat Module Passenger / Sitzmodul Beifahrer'),
+      EcuInfo(address: 0x58, name: 'SMFA_LEGACY', description: 'Seat Module Driver (E-Series / Early Architecture 0x58)'),
+      EcuInfo(address: 0x59, name: 'SMBF_LEGACY', description: 'Seat Module Passenger (E-Series / Early Architecture 0x59)'),
       EcuInfo(address: 0x62, name: 'CID', description: 'Central Information Display (NBT Screen)'),
       EcuInfo(address: 0x72, name: 'CAS', description: 'Car Access System / Immobilizer'),
       EcuInfo(address: 0x70, name: 'FRM', description: 'Footwell Module / Exterior Lighting & Windows'),
@@ -306,7 +306,7 @@ class BmwEcuScanner {
   }
 
   /// Known BMW Infospeicher (Shadow DTC) factory descriptions reverse-engineered
-  /// from EDIABAS, ISTA, and BimmerGeeks ProTool.
+  /// from factory diagnostic databases and engineering definitions.
   static const Map<String, String> shadowDtcDatabase = {
     // DME Engine Shadow Codes
     '138102': 'Exhaust Flap Actuator: Line disconnection / open circuit (Active valve unplugged or fuse pulled)',

@@ -167,12 +167,7 @@ class BmwVtgManager {
 
   /// Ensures connection to vehicle diagnostic endpoint
   Future<bool> ensureConnected() async {
-    final activeProto = _getActiveProtocol();
-    if (!activeProto.isConnected) {
-      debugPrint('[VTG-MANAGER] Protocol not connected. Initiating connection...');
-      return await activeProto.connect();
-    }
-    return true;
+    return await ConnectionManager.instance.ensureLinked(protocol);
   }
 
   /// Pings VTG ECU via TesterPresent (0x3E 0x00)

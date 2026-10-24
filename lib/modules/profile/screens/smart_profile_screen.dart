@@ -310,7 +310,7 @@ class _SmartProfileScreenState extends State<SmartProfileScreen> with SingleTick
                           children: [
                             Text(mechanic['name'] ?? 'Unknown Workshop', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                             const SizedBox(height: 4),
-                            Text('Rating: ${mechanic['rating']} ★', style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.w600)),
+                            Text('Rating: ${mechanic['rating']} / 5.0', style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.w600)),
                             const SizedBox(height: 4),
                             Text('Expertise: $specialties', style: const TextStyle(color: Colors.white70, fontSize: 13)),
                             const SizedBox(height: 4),

@@ -108,6 +108,11 @@ class EnetHsfzProtocol {
   static int? lastConnectedPort;
 
   bool _isDoIpMode = false;
+
+  /// Invoked when the TCP link to the adapter drops unexpectedly (socket error
+  /// or remote close). Not invoked for an explicit [disconnect] call.
+  void Function(String reason)? onLinkLost;
+
   bool get isConnected =>
       _socket != null ||
       (_bleStrategy != null && _bleStrategy!.isConnected) ||
@@ -365,10 +370,12 @@ class EnetHsfzProtocol {
         onError: (err) {
           debugPrint('[ENET-HSFZ] Socket error: $err');
           disconnect();
+          onLinkLost?.call('socket_error:$err');
         },
         onDone: () {
           debugPrint('[ENET-HSFZ] Socket closed by vehicle.');
           disconnect();
+          onLinkLost?.call('socket_closed');
         },
       );
 

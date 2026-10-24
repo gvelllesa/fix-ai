@@ -9,6 +9,7 @@ import 'modules/home/screens/dashboard_screen.dart';
 import 'modules/auth/screens/sign_in_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
+import 'core/localization/language_controller.dart';
 import 'data/local_cache_service.dart';
 import 'modules/obd/services/offline_database_manager.dart';
 
@@ -85,18 +86,25 @@ void main() async {
     debugPrint('[main] ThemeController init warning: $e');
   }
 
-  // 5. Initialize 100% Offline Database Manager (ISTA, PSdZData, E-Sys Cheat Codes)
+  // 5. Initialize Language Controller safely
+  try {
+    await LanguageController.instance.initialize();
+  } catch (e) {
+    debugPrint('[main] LanguageController init warning: $e');
+  }
+
+  // 6. Initialize 100% Offline Database Manager (ISTA, PSdZData, E-Sys Cheat Codes)
   try {
     await OfflineDatabaseManager.instance.initialize();
   } catch (e) {
     debugPrint('[main] OfflineDatabaseManager init warning: $e');
   }
 
-  // 6. Launch the primary UI
+  // 7. Launch the primary UI
   try {
     runApp(AiCarApp(themeController: themeController));
   } catch (e, stackTrace) {
-    debugPrint('🔥 კრიტიკული შეცდომა გაშვებისას: $e\n$stackTrace');
+    debugPrint('[main] კრიტიკული შეცდომა გაშვებისას: $e\n$stackTrace');
 
     runApp(MaterialApp(
       home: Scaffold(
@@ -124,7 +132,7 @@ class AiCarApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: themeController,
+      animation: Listenable.merge([themeController, LanguageController.instance]),
       builder: (context, _) {
         Session? initialSession;
         Stream<AuthState>? authStream;
@@ -139,6 +147,11 @@ class AiCarApp extends StatelessWidget {
         return MaterialApp(
           title: 'FIX AI',
           debugShowCheckedModeBanner: false,
+          locale: LanguageController.instance.locale,
+          supportedLocales: const [
+            Locale('ka', 'GE'),
+            Locale('en', 'US'),
+          ],
           themeMode: themeController.themeMode,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,

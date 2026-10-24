@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/language_controller.dart';
 import '../services/bmw_fault_diagnostic_engine.dart';
 
 /// Standalone, professional BMW factory fault card widget.
 /// Renders authentic factory definitions, English titles, Georgian technical explanations,
 /// vehicle symptoms, and step-by-step repair instructions directly inline.
+/// Automatically adapts to the active language (Georgian / English).
 class BmwFaultCard extends StatelessWidget {
   final BmwFaultLookupResult result;
   final String raw;
@@ -40,6 +42,8 @@ class BmwFaultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lang = LanguageController.instance.currentLanguage;
+    final isGeo = lang == AppLanguage.geo;
     final addr = '0x${result.ecuAddress.toRadixString(16).toUpperCase().padLeft(2, '0')}';
     final sevColor = _severityColor(result.severity);
 
@@ -55,8 +59,11 @@ class BmwFaultCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header: ECU Badge + DTC Hex + Severity Badge + Drivability
-            Row(
+            // Header: ECU Badge + DTC Hex + Severity Badge + Drivability (Responsive Wrap)
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -74,7 +81,6 @@ class BmwFaultCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
                 Text(
                   result.dtcHex,
                   style: const TextStyle(
@@ -84,7 +90,6 @@ class BmwFaultCard extends StatelessWidget {
                     fontFamily: 'monospace',
                   ),
                 ),
-                const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
@@ -97,7 +102,6 @@ class BmwFaultCard extends StatelessWidget {
                     style: TextStyle(color: sevColor, fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                 ),
-                const SizedBox(width: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
@@ -114,7 +118,7 @@ class BmwFaultCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 3),
                       Text(
-                        result.safeToDrive ? 'მოძრაობა დასაშვებია' : 'მოძრაობა საშიშია',
+                        result.safeToDriveText(lang),
                         style: TextStyle(
                           color: result.safeToDrive ? Colors.blueAccent : alertRed,
                           fontSize: 9,
@@ -131,11 +135,11 @@ class BmwFaultCard extends StatelessWidget {
             const SizedBox(height: 10),
 
             if (!result.isKnown)
-              Text(result.unknownMessageKa, style: const TextStyle(color: Colors.white70))
+              Text(result.unknownMessage(lang), style: const TextStyle(color: Colors.white70))
             else ...[
-              // English Title
+              // Title
               Text(
-                result.titleEn,
+                result.title(lang),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 14,
@@ -157,7 +161,7 @@ class BmwFaultCard extends StatelessWidget {
               ],
               const SizedBox(height: 10),
 
-              // Georgian Explanation
+              // Technical Explanation
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(10),
@@ -169,13 +173,13 @@ class BmwFaultCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.info_outline, color: Colors.cyanAccent, size: 14),
-                        SizedBox(width: 6),
+                        const Icon(Icons.info_outline, color: Colors.cyanAccent, size: 14),
+                        const SizedBox(width: 6),
                         Text(
-                          'ქარხნული განმარტება:',
-                          style: TextStyle(
+                          isGeo ? 'ქარხნული განმარტება:' : 'Factory Explanation:',
+                          style: const TextStyle(
                             color: Colors.cyanAccent,
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -185,7 +189,7 @@ class BmwFaultCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      result.explanationKa,
+                      result.explanation(lang),
                       style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.35),
                     ),
                   ],
@@ -193,20 +197,20 @@ class BmwFaultCard extends StatelessWidget {
               ),
 
               // Symptoms
-              if (result.symptomsKa.isNotEmpty) ...[
+              if (result.symptoms(lang).isNotEmpty) ...[
                 const SizedBox(height: 10),
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded, color: amber, size: 14),
-                    SizedBox(width: 6),
+                    const Icon(Icons.warning_amber_rounded, color: amber, size: 14),
+                    const SizedBox(width: 6),
                     Text(
-                      'სიმპტომები ავტომობილზე:',
-                      style: TextStyle(color: amber, fontSize: 12, fontWeight: FontWeight.bold),
+                      isGeo ? 'სიმპტომები ავტომობილზე:' : 'Vehicle Symptoms:',
+                      style: const TextStyle(color: amber, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                for (final sym in result.symptomsKa)
+                for (final sym in result.symptoms(lang))
                   Padding(
                     padding: const EdgeInsets.only(left: 6, bottom: 2),
                     child: Text('• $sym', style: const TextStyle(color: Colors.white70, fontSize: 12)),
@@ -214,15 +218,15 @@ class BmwFaultCard extends StatelessWidget {
               ],
 
               // Actionable Repair Steps
-              if (result.repairStepsKa.isNotEmpty) ...[
+              if (result.repairSteps(lang).isNotEmpty) ...[
                 const SizedBox(height: 10),
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.build_circle_outlined, color: neonGreen, size: 14),
-                    SizedBox(width: 6),
+                    const Icon(Icons.build_circle_outlined, color: neonGreen, size: 14),
+                    const SizedBox(width: 6),
                     Text(
-                      'მოგვარების ნაბიჯები (ქარხნული რეგლამენტი):',
-                      style: TextStyle(
+                      isGeo ? 'მოგვარების ნაბიჯები (ქარხნული რეგლამენტი):' : 'Guided Repair Steps (Factory):',
+                      style: const TextStyle(
                         color: neonGreen,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -231,7 +235,7 @@ class BmwFaultCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 6),
-                for (final step in result.repairStepsKa)
+                for (final step in result.repairSteps(lang))
                   Padding(
                     padding: const EdgeInsets.only(left: 4, bottom: 4),
                     child: Text(
@@ -244,16 +248,16 @@ class BmwFaultCard extends StatelessWidget {
               // Technical Glossary
               if (result.glossary.isNotEmpty) ...[
                 const Divider(color: Colors.white12, height: 18),
-                const Text(
-                  'ტექნიკური ტერმინები:',
-                  style: TextStyle(color: Colors.white38, fontSize: 11),
+                Text(
+                  isGeo ? 'ტექნიკური ტერმინები:' : 'Technical Glossary:',
+                  style: const TextStyle(color: Colors.white38, fontSize: 11),
                 ),
                 const SizedBox(height: 2),
                 for (final g in result.glossary)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
-                      '• ${g.term}: ${g.meaningKa}',
+                      '• ${g.term}: ${g.meaning(lang)}',
                       style: const TextStyle(color: Colors.white54, fontSize: 11),
                     ),
                   ),
@@ -267,7 +271,10 @@ class BmwFaultCard extends StatelessWidget {
                 child: TextButton.icon(
                   onPressed: onClearCode,
                   icon: const Icon(Icons.delete_outline, size: 14, color: alertRed),
-                  label: const Text('კოდის წაშლა', style: TextStyle(color: alertRed, fontSize: 11)),
+                  label: Text(
+                    isGeo ? 'კოდის წაშლა' : 'Clear DTC',
+                    style: const TextStyle(color: alertRed, fontSize: 11),
+                  ),
                 ),
               ),
             ],

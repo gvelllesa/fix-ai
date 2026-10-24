@@ -716,20 +716,7 @@ class BmwServiceFunctions {
 
   /// Ensures active TCP/HSFZ diagnostic link to vehicle
   Future<bool> ensureConnected() async {
-    final activeProto = _getActiveProtocol();
-    if (!activeProto.isConnected) {
-      debugPrint('[BmwServiceFunctions] Link not established. Detecting BMW adapter...');
-      final target = await activeProto.detectAdapter();
-      if (target != null) {
-        return await activeProto.connect(
-          host: target.host,
-          port: target.port,
-          useDoip: target.isDoip,
-        );
-      }
-      return await activeProto.connect();
-    }
-    return true;
+    return await ConnectionManager.instance.ensureLinked(protocol);
   }
 
   /// Transitions ECU into Extended Diagnostic Session (0x10 0x03)

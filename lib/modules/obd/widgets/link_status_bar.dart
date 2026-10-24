@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/fix_ai_tokens.dart';
 import '../services/connection_manager.dart';
 
-/// Automotive Link Status Bar & Operation Progress Monitor (P3.6).
+/// Automotive Link Status Bar (EvoCare inspired).
 ///
-/// Clearly communicates connection lifecycle to driver/tuner:
-/// 1. Disconnected (Red) - No physical connection
-/// 2. Adapter Connected (Amber) - Link to ENET/Wi-Fi/BLE established, waiting for ignition/ECU
-/// 3. DME Online (Green) - Diagnostic session active, displaying VIN, Software ID, and Voltage.
+/// Clearly communicates connection status across the entire application:
+/// 1. Disconnected (Red) - No adapter connection detected
+/// 2. Adapter Connected (Amber) - Link established, waiting for DME ignition
+/// 3. DME Online (Green) - Diagnostic session active with live voltage & latency
+///
+/// Sub-screens do NOT show reconnect buttons — status is pure and non-intrusive.
 class LinkStatusBar extends StatelessWidget {
   final ConnectionSnapshot? customSnapshot;
   final double? flashProgress; // 0.0 to 1.0
@@ -28,6 +31,7 @@ class LinkStatusBar extends StatelessWidget {
       builder: (context, snapshot, _) {
         final activeSnapshot = customSnapshot ?? snapshot;
         final linkState = activeSnapshot.linkState;
+        final progress = ConnectionManager.instance.progress;
 
         final Color statusColor;
         final String title;
@@ -36,19 +40,21 @@ class LinkStatusBar extends StatelessWidget {
 
         switch (linkState) {
           case LinkState.disconnected:
-            statusColor = const Color(0xFFE53935);
+            statusColor = FixAiTokens.accentRose;
             title = 'DISCONNECTED';
-            subtitle = 'No adapter connection detected';
+            subtitle = progress.failureStage != null
+                ? 'შეფერხება: ${progress.failureStage}'
+                : 'No adapter connection detected';
             icon = Icons.link_off_rounded;
             break;
           case LinkState.adapterOnly:
-            statusColor = const Color(0xFFFFA000);
+            statusColor = FixAiTokens.accentAmber;
             title = 'ADAPTER LINKED';
             subtitle = '${activeSnapshot.host ?? "ENET"}:${activeSnapshot.port ?? 35000} • Ignition OFF or DME unreachable';
             icon = Icons.warning_amber_rounded;
             break;
           case LinkState.ecuResponding:
-            statusColor = const Color(0xFF1DB954);
+            statusColor = FixAiTokens.accentEmerald;
             final vin = activeSnapshot.activeVin ?? 'VIN: OK';
             final volt = activeSnapshot.batteryVoltage != null
                 ? '${activeSnapshot.batteryVoltage!.toStringAsFixed(1)}V'
@@ -63,9 +69,19 @@ class LinkStatusBar extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF161616),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: statusColor.withValues(alpha: 0.35)),
+            color: FixAiTokens.surfacePrimary,
+            borderRadius: FixAiTokens.borderRadiusMd,
+            border: Border.all(
+              color: statusColor.withValues(alpha: 0.35),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: statusColor.withValues(alpha: 0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -80,9 +96,9 @@ class LinkStatusBar extends StatelessWidget {
                       color: statusColor,
                       boxShadow: [
                         BoxShadow(
-                          color: statusColor.withValues(alpha: 0.6),
-                          blurRadius: 6,
-                          spreadRadius: 1,
+                          color: statusColor.withValues(alpha: 0.7),
+                          blurRadius: 8,
+                          spreadRadius: 1.5,
                         ),
                       ],
                     ),
@@ -99,15 +115,16 @@ class LinkStatusBar extends StatelessWidget {
                           style: TextStyle(
                             color: statusColor,
                             fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w800,
                             letterSpacing: 0.8,
                           ),
                         ),
+                        const SizedBox(height: 1),
                         Text(
                           subtitle,
-                          style: const TextStyle(
-                            color: Colors.white60,
-                            fontSize: 10,
+                          style: TextStyle(
+                            color: FixAiTokens.textSecondary,
+                            fontSize: 11,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -115,15 +132,6 @@ class LinkStatusBar extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (linkState == LinkState.disconnected && onConnectPressed != null)
-                    TextButton(
-                      onPressed: onConnectPressed,
-                      style: TextButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
-                      child: const Text('CONNECT', style: TextStyle(color: Color(0xFF1DB954), fontSize: 11, fontWeight: FontWeight.bold)),
-                    ),
                 ],
               ),
 
@@ -136,7 +144,11 @@ class LinkStatusBar extends StatelessWidget {
                     Expanded(
                       child: Text(
                         flashStage ?? 'Flashing in progress...',
-                        style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          color: FixAiTokens.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -144,7 +156,12 @@ class LinkStatusBar extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text(
                       '${(flashProgress! * 100).toStringAsFixed(1)}%',
-                      style: const TextStyle(color: Color(0xFF29B6F6), fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                      style: const TextStyle(
+                        color: FixAiTokens.accentCyan,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                      ),
                     ),
                   ],
                 ),
@@ -153,8 +170,8 @@ class LinkStatusBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: flashProgress!.clamp(0.0, 1.0),
-                    backgroundColor: Colors.white12,
-                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF29B6F6)),
+                    backgroundColor: FixAiTokens.surfaceElevated,
+                    valueColor: const AlwaysStoppedAnimation<Color>(FixAiTokens.accentCyan),
                     minHeight: 6,
                   ),
                 ),

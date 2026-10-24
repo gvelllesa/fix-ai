@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/animations/fix_ai_motion.dart';
+import '../../../core/localization/language_controller.dart';
 import '../../../core/theme/fix_ai_tokens.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../garage/widgets/add_car_dialog.dart';
@@ -31,6 +32,7 @@ class FixAiDrawer extends StatefulWidget {
 
 class _FixAiDrawerState extends State<FixAiDrawer> {
   int _refreshKey = 0;
+  bool get isGeo => LanguageController.instance.isGeorgian;
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +81,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                             ),
                           ),
                           Text(
-                            'FACTORY DIAGNOSTICS & TUNING',
+                            isGeo ? 'ქარხნული დიაგნოსტიკა და ტიუნინგი' : 'FACTORY DIAGNOSTICS & TUNING',
                             style: TextStyle(
                               color: textTertiary,
                               fontSize: 8,
@@ -88,6 +90,47 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                             ),
                           ),
                         ],
+                      ),
+                      const Spacer(),
+                      // Compact GEO / ENG language toggle
+                      BouncyPressable(
+                        onTap: () async {
+                          await LanguageController.instance.toggleLanguage();
+                          if (mounted) setState(() {});
+                        },
+                        borderRadius: BorderRadius.circular(FixAiTokens.radiusPill),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: FixAiTokens.surfaceElevated,
+                            borderRadius: BorderRadius.circular(FixAiTokens.radiusPill),
+                            border: Border.all(color: FixAiTokens.borderSubtle),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'GEO',
+                                style: TextStyle(
+                                  color: isGeo ? FixAiTokens.accentCyan : FixAiTokens.textMuted,
+                                  fontSize: 10,
+                                  fontWeight: isGeo ? FontWeight.w800 : FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(width: 3),
+                              Container(width: 1, height: 10, color: FixAiTokens.borderSubtle),
+                              const SizedBox(width: 3),
+                              Text(
+                                'ENG',
+                                style: TextStyle(
+                                  color: !isGeo ? FixAiTokens.accentCyan : FixAiTokens.textMuted,
+                                  fontSize: 10,
+                                  fontWeight: !isGeo ? FontWeight.w800 : FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -112,20 +155,20 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                         ),
                         borderRadius: FixAiTokens.borderRadiusMd,
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.health_and_safety_rounded, color: Color(0xFF090C10), size: 20),
-                          SizedBox(width: 10),
+                          const Icon(Icons.health_and_safety_rounded, color: Color(0xFF090C10), size: 20),
+                          const SizedBox(width: 10),
                           Text(
-                            'Full Diagnostic Scan',
-                            style: TextStyle(
+                            isGeo ? 'სრული დიაგნოსტიკური სკანირება' : 'Full Diagnostic Scan',
+                            style: const TextStyle(
                               color: Color(0xFF090C10),
                               fontWeight: FontWeight.w800,
-                              fontSize: 14,
+                              fontSize: 13.5,
                             ),
                           ),
-                          Spacer(),
-                          Icon(Icons.arrow_forward_rounded, color: Color(0xFF090C10), size: 16),
+                          const Spacer(),
+                          const Icon(Icons.arrow_forward_rounded, color: Color(0xFF090C10), size: 16),
                         ],
                       ),
                     ),
@@ -140,61 +183,65 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 children: [
-                  _buildSubHeader('WORKSHOP MODULES', Icons.grid_view_rounded, textTertiary),
+                  _buildSubHeader(
+                    isGeo ? 'სახელოსნოს მოდულები' : 'WORKSHOP MODULES',
+                    Icons.grid_view_rounded,
+                    textTertiary,
+                  ),
                   const SizedBox(height: 6),
                   _buildNavTile(
                     context: context,
                     icon: Icons.hub_rounded,
-                    title: 'ECU Topology & DTCs',
-                    subtitle: 'Full 32-module scan & freeze frames',
+                    title: isGeo ? 'ECU ტოპოლოგია და DTC-ები' : 'ECU Topology & DTCs',
+                    subtitle: isGeo ? '32 ბლოკის სკანირება და Freeze Frame' : 'Full 32-module scan & freeze frames',
                     color: FixAiTokens.accentEmerald,
                     destination: const EcuScanScreen(),
                   ),
                   _buildNavTile(
                     context: context,
                     icon: Icons.speed_rounded,
-                    title: 'Live Telemetry & Gauges',
-                    subtitle: 'High-speed UDS boost, AFR & temps',
+                    title: isGeo ? 'Live ტელემეტრია და სენსორები' : 'Live Telemetry & Gauges',
+                    subtitle: isGeo ? 'მაღალსიჩქარიანი UDS წნევა, AFR და ტემპები' : 'High-speed UDS boost, AFR & temps',
                     color: FixAiTokens.accentCyan,
                     destination: const LiveTelemetryScreen(),
                   ),
                   _buildNavTile(
                     context: context,
                     icon: Icons.bolt_rounded,
-                    title: 'Tuning & Flash Calibration',
-                    subtitle: 'Custom ROM, burbles & TCU options',
+                    title: isGeo ? 'DME და TCU ჩაწერა / ტიუნინგი' : 'Tuning & Flash Calibration',
+                    subtitle: isGeo ? 'Custom ROM, Burble ხმები და xHP' : 'Custom ROM, burbles & TCU options',
                     color: FixAiTokens.accentAmber,
                     destination: const FlashTuningScreen(),
                   ),
                   _buildNavTile(
                     context: context,
                     icon: Icons.alt_route_rounded,
-                    title: 'xDrive AWD Control',
-                    subtitle: 'Dynamic torque split & 100% RWD',
+                    title: isGeo ? 'xDrive და VTG რაზდატკა' : 'xDrive AWD Control',
+                    subtitle: isGeo ? '2WD/AWD რეჟიმები და გადაბმულობა' : 'Dynamic torque split & 100% RWD',
                     color: FixAiTokens.accentCyan,
                     destination: const XDriveControlScreen(),
                   ),
                   _buildNavTile(
                     context: context,
                     icon: Icons.home_repair_service_rounded,
-                    title: 'Service & Adaptations',
-                    subtitle: 'Battery register, brake bleed, VTG reset',
+                    title: isGeo ? 'დილერული სერვის-რუტინები' : 'Service & Adaptations',
+                    subtitle: isGeo ? 'აკუმულატორი, მუხრუჭები, VTG განულება' : 'Battery register, brake bleed, VTG reset',
                     color: FixAiTokens.accentAmber,
                     destination: const ServiceFunctionsScreen(),
                   ),
                   _buildNavTile(
                     context: context,
                     icon: Icons.terminal_rounded,
-                    title: 'Vehicle Coding & FDL',
-                    subtitle: 'SALAPA orders & cheat codes',
+                    title: isGeo ? '1-Tap FDL Cheat კოდირება' : 'Vehicle Coding & FDL',
+                    subtitle: isGeo ? 'Start-Stop, სარკეები, VO/FA შეკვეთა' : 'SALAPA orders & cheat codes',
                     color: FixAiTokens.accentPurple,
                     destination: const CodingScreen(),
                   ),
                   _buildNavTile(
                     context: context,
                     icon: Icons.settings_ethernet_rounded,
-                    title: 'Adapter Hardware Setup',
-                    subtitle: 'ENET, WiFi, Bluetooth ELM327',
+                    title: isGeo ? 'ადაპტერის კონფიგურაცია' : 'Adapter Hardware Setup',
+                    subtitle: isGeo ? 'ENET, Wi-Fi, Bluetooth ELM327' : 'ENET, WiFi, Bluetooth ELM327',
                     color: FixAiTokens.textSecondary,
                     onTapCustom: () async {
                       Navigator.pop(context);
@@ -207,7 +254,11 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                   const SizedBox(height: 16),
 
                   // MY GARAGE
-                  _buildSubHeader('MY GARAGE', Icons.directions_car_outlined, textTertiary),
+                  _buildSubHeader(
+                    isGeo ? 'ჩემი ავტოფარეხი' : 'MY GARAGE',
+                    Icons.directions_car_outlined,
+                    textTertiary,
+                  ),
                   const SizedBox(height: 6),
                   FutureBuilder<List<Map<String, dynamic>>>(
                     key: ValueKey(_refreshKey),
@@ -232,8 +283,8 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                         return Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
                           child: Text(
-                            'Error loading vehicles',
-                            style: TextStyle(color: FixAiTokens.accentRose, fontSize: 12),
+                            isGeo ? 'ავტომობილების ჩატვირთვის შეფერხება' : 'Error loading vehicles',
+                            style: const TextStyle(color: FixAiTokens.accentRose, fontSize: 12),
                           ),
                         );
                       }
@@ -243,7 +294,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                         return Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
                           child: Text(
-                            'No vehicles registered in garage.',
+                            isGeo ? 'ავტომობილები არ არის რეგისტრირებული.' : 'No vehicles registered in garage.',
                             style: TextStyle(color: textTertiary, fontSize: 12),
                           ),
                         );
@@ -258,7 +309,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                           final isActive = car['id'] == widget.currentCarId;
                           return _buildGarageItem(
                             context,
-                            title.isEmpty ? 'Unknown Vehicle' : title,
+                            title.isEmpty ? (isGeo ? 'უცნობი ავტომობილი' : 'Unknown Vehicle') : title,
                             isActive: isActive,
                             accentColor: FixAiTokens.accentCyan,
                             onTap: () {
@@ -289,7 +340,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                         }
                       },
                       icon: const Icon(Icons.add_rounded, size: 18),
-                      label: const Text('Add Vehicle to Garage'),
+                      label: Text(isGeo ? 'ავტომობილის დამატება' : 'Add Vehicle to Garage'),
                       style: TextButton.styleFrom(
                         foregroundColor: FixAiTokens.accentCyan,
                         textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
@@ -299,17 +350,21 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                   const SizedBox(height: 14),
 
                   // DIAGNOSTIC HISTORY
-                  _buildSubHeader('RECENT PROCEDURES', Icons.history_rounded, textTertiary),
+                  _buildSubHeader(
+                    isGeo ? 'ბოლო პროცედურები' : 'RECENT PROCEDURES',
+                    Icons.history_rounded,
+                    textTertiary,
+                  ),
                   const SizedBox(height: 6),
                   _buildHistoryItem(
                     context,
-                    'N55 Engine Misfire Analysis',
+                    isGeo ? 'N55 ცილინდრების ანალიზი' : 'N55 Engine Misfire Analysis',
                     isActive: true,
                     accentColor: FixAiTokens.accentCyan,
                   ),
                   _buildHistoryItem(
                     context,
-                    'VTG Transfer Case Adaptation Reset',
+                    isGeo ? 'VTG რაზდატკის ადაპტაციის განულება' : 'VTG Transfer Case Adaptation Reset',
                     isActive: false,
                     accentColor: FixAiTokens.accentCyan,
                   ),
@@ -365,9 +420,9 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                     ),
                   ),
                   IconButton(
-                    onPressed: () => _showSettingsModal(context, theme, textPrimary, FixAiTokens.accentCyan, textTertiary),
+                    onPressed: () => _showSettingsModal(context, theme, textPrimary, FixAiTokens.accentCyan, textTertiary, isGeo),
                     icon: Icon(Icons.settings_rounded, size: 19, color: textTertiary),
-                    tooltip: 'Settings',
+                    tooltip: isGeo ? 'პარამეტრები' : 'Settings',
                   ),
                   IconButton(
                     onPressed: () async {
@@ -384,7 +439,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                       }
                     },
                     icon: Icon(Icons.logout_rounded, size: 19, color: textTertiary),
-                    tooltip: 'Log Out',
+                    tooltip: isGeo ? 'სისტემიდან გამოსვლა' : 'Log Out',
                   ),
                 ],
               ),
@@ -573,7 +628,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
     );
   }
 
-  void _showSettingsModal(BuildContext context, ThemeData theme, Color textPrimary, Color accentColor, Color textTertiary) {
+  void _showSettingsModal(BuildContext context, ThemeData theme, Color textPrimary, Color accentColor, Color textTertiary, bool isGeo) {
     final measurementNotifier = ValueNotifier<String>('Metric');
 
     showModalBottomSheet(
@@ -604,9 +659,48 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                   ),
                   const SizedBox(height: 20),
 
+                  // Language Selection
+                  Text(
+                    isGeo ? 'ინტერფეისის ენა' : 'Application Language',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
+                  ),
+                  const SizedBox(height: 10),
+                  AnimatedBuilder(
+                    animation: LanguageController.instance,
+                    builder: (context, _) {
+                      return SizedBox(
+                        width: double.infinity,
+                        child: SegmentedButton<AppLanguage>(
+                          segments: const [
+                            ButtonSegment(
+                              value: AppLanguage.geo,
+                              label: Text('ქართული (GEO)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                            ),
+                            ButtonSegment(
+                              value: AppLanguage.eng,
+                              label: Text('English (ENG)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                            ),
+                          ],
+                          selected: {LanguageController.instance.currentLanguage},
+                          onSelectionChanged: (Set<AppLanguage> newSelection) async {
+                            await LanguageController.instance.setLanguage(newSelection.first);
+                            if (mounted) setState(() {});
+                          },
+                          style: SegmentedButton.styleFrom(
+                            foregroundColor: textPrimary,
+                            selectedForegroundColor: Colors.black,
+                            selectedBackgroundColor: accentColor,
+                            side: const BorderSide(color: FixAiTokens.borderSubtle),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+
                   // Appearance Theme
                   Text(
-                    'Appearance Theme',
+                    isGeo ? 'დიზაინის თემა' : 'Appearance Theme',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
                   ),
                   const SizedBox(height: 10),
@@ -616,10 +710,10 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                       return SizedBox(
                         width: double.infinity,
                         child: SegmentedButton<ThemeMode>(
-                          segments: const [
-                            ButtonSegment(value: ThemeMode.system, label: Text('Auto', style: TextStyle(fontSize: 12))),
-                            ButtonSegment(value: ThemeMode.light, label: Text('Light', style: TextStyle(fontSize: 12))),
-                            ButtonSegment(value: ThemeMode.dark, label: Text('Dark', style: TextStyle(fontSize: 12))),
+                          segments: [
+                            ButtonSegment(value: ThemeMode.system, label: Text(isGeo ? 'ავტო' : 'Auto', style: const TextStyle(fontSize: 12))),
+                            ButtonSegment(value: ThemeMode.light, label: Text(isGeo ? 'ღია' : 'Light', style: const TextStyle(fontSize: 12))),
+                            ButtonSegment(value: ThemeMode.dark, label: Text(isGeo ? 'მუქი' : 'Dark', style: const TextStyle(fontSize: 12))),
                           ],
                           selected: {ThemeController().themeMode},
                           onSelectionChanged: (Set<ThemeMode> newSelection) {
@@ -640,7 +734,7 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
 
                   // Measurement Units
                   Text(
-                    'Measurement Units',
+                    isGeo ? 'ერთეულები' : 'Measurement Units',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
                   ),
                   const SizedBox(height: 10),
@@ -650,9 +744,9 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                       return SizedBox(
                         width: double.infinity,
                         child: SegmentedButton<String>(
-                          segments: const [
-                            ButtonSegment(value: 'Metric', label: Text('Metric (km, °C, Bar)', style: TextStyle(fontSize: 12))),
-                            ButtonSegment(value: 'Imperial', label: Text('Imperial (mi, °F, PSI)', style: TextStyle(fontSize: 12))),
+                          segments: [
+                            ButtonSegment(value: 'Metric', label: Text(isGeo ? 'მეტრული (კმ, °C, Bar)' : 'Metric (km, °C, Bar)', style: const TextStyle(fontSize: 11.5))),
+                            ButtonSegment(value: 'Imperial', label: Text(isGeo ? 'იმპერიული (მილი, °F, PSI)' : 'Imperial (mi, °F, PSI)', style: const TextStyle(fontSize: 11.5))),
                           ],
                           selected: {value},
                           onSelectionChanged: (Set<String> newSelection) {
@@ -675,7 +769,10 @@ class _FixAiDrawerState extends State<FixAiDrawer> {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.delete_outline_rounded, color: FixAiTokens.accentRose),
-                    title: const Text('Clear Diagnostic History', style: TextStyle(color: FixAiTokens.accentRose, fontWeight: FontWeight.bold)),
+                    title: Text(
+                      isGeo ? 'დიაგნოსტიკის ისტორიის წაშლა' : 'Clear Diagnostic History',
+                      style: const TextStyle(color: FixAiTokens.accentRose, fontWeight: FontWeight.bold),
+                    ),
                     onTap: () {
                       Navigator.pop(modalContext);
                     },

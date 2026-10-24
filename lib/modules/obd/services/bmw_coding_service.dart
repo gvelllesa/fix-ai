@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'protocols/enet_hsfz_protocol.dart';
+import 'connection_manager.dart';
 import 'bmw_ecu_scanner.dart';
 import 'bmw_flash_manager.dart';
 
@@ -1231,20 +1232,7 @@ class BmwCodingService {
 
   /// Verifies or establishes diagnostic connection to the BMW vehicle
   Future<bool> ensureConnected() async {
-    final activeProto = _getActiveProtocol();
-    if (!activeProto.isConnected) {
-      debugPrint('[BmwCodingService] Detecting vehicle adapter...');
-      final target = await activeProto.detectAdapter();
-      if (target != null) {
-        return await activeProto.connect(
-          host: target.host,
-          port: target.port,
-          useDoip: target.isDoip,
-        );
-      }
-      return await activeProto.connect();
-    }
-    return true;
+    return await ConnectionManager.instance.ensureLinked(protocol);
   }
 
   /// Reads battery terminal voltage (mV -> V) via DME DID 0xF111

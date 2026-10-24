@@ -193,7 +193,7 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
       final publicUrl = await uploadService.uploadChatMedia(bytes, extension, 'chat-media');
 
       _controller.messages.add(ChatMessage(
-        text: isAudio ? '🎤 Sent an audio clip' : '📸 Sent an image',
+        text: isAudio ? '[Audio clip attached]' : '[Image attached]',
         isUser: true,
       ));
       _onControllerUpdate();

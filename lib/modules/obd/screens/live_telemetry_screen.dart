@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/localization/language_controller.dart';
 import '../services/connection_manager.dart';
 import '../services/protocols/enet_hsfz_protocol.dart';
 import '../services/live_telemetry_service.dart';
@@ -63,8 +64,9 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
       _ownsProtocol = false;
       _isConnected = true;
     } else {
-      _protocol = EnetHsfzProtocol();
-      _ownsProtocol = true;
+      _protocol = ConnectionManager.instance.protocol;
+      _ownsProtocol = false;
+      _isConnected = false;
     }
 
     _telemetryService = LiveTelemetryService(protocol: _protocol);
@@ -143,9 +145,7 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
     _warningNotifier.dispose();
     // Safely return any active actuations back to DME control on exit
     _actuator.releaseAllActuations();
-    if (_ownsProtocol) {
-      _protocol.disconnect();
-    }
+    // Do not disconnect shared connection to preserve global vehicle session
     super.dispose();
   }
 
@@ -155,13 +155,7 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
     });
 
     try {
-      final target = await _protocol.detectAdapter();
-      bool ok = false;
-      if (target != null) {
-        ok = await _protocol.connect(host: target.host, port: target.port, useDoip: target.isDoip);
-      } else {
-        ok = await _protocol.connect(host: '192.168.16.101', port: 35000);
-      }
+      final ok = await ConnectionManager.instance.ensureLinked(_protocol);
 
       if (ok) {
         if (mounted) {
@@ -283,6 +277,8 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final langCtrl = LanguageController.instance;
+    final isGeo = langCtrl.isGeorgian;
     final allSensors = BmwSensorRegistry.allSensors;
     final filteredSensors = _selectedCategory == 'All'
         ? allSensors
@@ -296,35 +292,101 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
       appBar: AppBar(
         backgroundColor: bgColor,
         elevation: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'BMW Live Datalogger',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              '${allSensors.length} Channels • Zero Simulation • OLED HUD',
-              style: const TextStyle(color: Colors.white38, fontSize: 11),
-            ),
-          ],
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: _isConnected ? neonGreen : alertRed,
+                      shape: BoxShape.circle,
+                      boxShadow: _isConnected
+                          ? [
+                              BoxShadow(
+                                color: neonGreen.withValues(alpha: 0.6),
+                                blurRadius: 6,
+                                spreadRadius: 1,
+                              ),
+                            ]
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    isGeo ? 'ცოცხალი ტელემეტრია' : 'Live Telemetry',
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              Text(
+                isGeo ? '${allSensors.length} არხი • OLED HUD' : '${allSensors.length} Channels • OLED HUD',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white38, fontSize: 10),
+              ),
+            ],
+          ),
         ),
         actions: [
-          // Actuator Testing Button
-          Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: ElevatedButton.icon(
-              onPressed: _isConnected ? _showActuatorTestingModal : null,
-              icon: const Icon(Icons.precision_manufacturing, size: 16),
-              label: const Text('ACTUATORS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _isConnected ? purpleAccent.withValues(alpha: 0.25) : Colors.white10,
-                foregroundColor: _isConnected ? purpleAccent : Colors.white38,
-                side: BorderSide(color: _isConnected ? purpleAccent.withValues(alpha: 0.5) : Colors.transparent),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          // Segmented GEO / ENG Language Switcher
+          Center(
+            child: InkWell(
+              onTap: () async {
+                await langCtrl.toggleLanguage();
+                if (mounted) setState(() {});
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                margin: const EdgeInsets.only(right: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white24, width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'GEO',
+                      style: TextStyle(
+                        color: isGeo ? accentBlue : Colors.white38,
+                        fontSize: 10,
+                        fontWeight: isGeo ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    Container(width: 1, height: 10, color: Colors.white24),
+                    const SizedBox(width: 3),
+                    Text(
+                      'ENG',
+                      style: TextStyle(
+                        color: !isGeo ? accentBlue : Colors.white38,
+                        fontSize: 10,
+                        fontWeight: !isGeo ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
+          ),
+          // Actuator Testing Button
+          IconButton(
+            onPressed: _isConnected ? _showActuatorTestingModal : null,
+            icon: Icon(
+              Icons.precision_manufacturing_rounded,
+              color: _isConnected ? purpleAccent : Colors.white38,
+            ),
+            tooltip: isGeo ? 'აქტუატორები' : 'Actuators',
           ),
           // Live Logging Button
           IconButton(
@@ -332,16 +394,10 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
               _telemetryService.isLogging ? Icons.stop_circle : Icons.fiber_manual_record,
               color: _telemetryService.isLogging ? alertRed : Colors.white60,
             ),
-            tooltip: _telemetryService.isLogging ? 'Stop Recording' : 'Record Session Log',
+            tooltip: _telemetryService.isLogging
+                ? (isGeo ? 'ჩაწერის შეჩერება' : 'Stop Recording')
+                : (isGeo ? 'სესიის ლოგის ჩაწერა' : 'Record Session Log'),
             onPressed: _isConnected ? _toggleLogging : null,
-          ),
-          IconButton(
-            icon: Icon(
-              _isConnected ? Icons.link : Icons.link_off,
-              color: _isConnected ? neonGreen : Colors.white38,
-            ),
-            tooltip: _isConnected ? 'Connected' : 'Reconnect',
-            onPressed: _isConnecting ? null : _connectAndStart,
           ),
         ],
       ),
@@ -349,9 +405,7 @@ class _LiveTelemetryScreenState extends State<LiveTelemetryScreen> {
         child: Column(
           children: [
             // Standardized 3-state Link Status Bar (P3.6)
-            LinkStatusBar(
-              onConnectPressed: _isConnecting ? null : _connectAndStart,
-            ),
+            const LinkStatusBar(),
 
             // Automotive Warning HUD Banner (P3.5)
             _buildWarningBanner(),

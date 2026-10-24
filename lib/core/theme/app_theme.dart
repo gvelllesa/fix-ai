@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../animations/fix_ai_motion.dart';
 import 'fix_ai_tokens.dart';
 
 /// FIX AI Visual Style Guide (Dark-Tech / Automotive Precision System)
@@ -63,6 +64,15 @@ class AppTheme {
       ),
       iconTheme: const IconThemeData(color: Colors.black87),
       dividerColor: const Color(0xFFE5E7EB),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: FixAiPageTransitionsBuilder(),
+          TargetPlatform.iOS: FixAiPageTransitionsBuilder(),
+          TargetPlatform.windows: FixAiPageTransitionsBuilder(),
+          TargetPlatform.linux: FixAiPageTransitionsBuilder(),
+          TargetPlatform.macOS: FixAiPageTransitionsBuilder(),
+        },
+      ),
     );
   }
 
@@ -109,6 +119,15 @@ class AppTheme {
       ),
       iconTheme: const IconThemeData(color: FixAiTokens.textPrimary),
       dividerColor: FixAiTokens.borderSubtle,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: FixAiPageTransitionsBuilder(),
+          TargetPlatform.iOS: FixAiPageTransitionsBuilder(),
+          TargetPlatform.windows: FixAiPageTransitionsBuilder(),
+          TargetPlatform.linux: FixAiPageTransitionsBuilder(),
+          TargetPlatform.macOS: FixAiPageTransitionsBuilder(),
+        },
+      ),
     );
   }
 }

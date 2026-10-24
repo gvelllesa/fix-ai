@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/localization/language_controller.dart';
 import '../services/connection_manager.dart';
 import '../services/protocols/enet_hsfz_protocol.dart';
 import '../services/bmw_ecu_scanner.dart';
@@ -50,16 +51,8 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.activeProtocol != null && widget.activeProtocol!.isConnected) {
-      _protocol = widget.activeProtocol!;
-      _ownsProtocol = false;
-    } else if (ConnectionManager.instance.protocol.isConnected) {
-      _protocol = ConnectionManager.instance.protocol;
-      _ownsProtocol = false;
-    } else {
-      _protocol = EnetHsfzProtocol();
-      _ownsProtocol = true;
-    }
+    _protocol = widget.activeProtocol ?? ConnectionManager.instance.protocol;
+    _ownsProtocol = false;
     _scanner = BmwEcuScanner(protocol: _protocol);
     _topology = BmwEcuScanner.getDefaultFSeriesTopology();
     BmwFaultDiagnosticEngine.instance.ensureLoaded();
@@ -72,9 +65,7 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
 
   @override
   void dispose() {
-    if (_ownsProtocol) {
-      _protocol.disconnect();
-    }
+    // Protocol is centrally managed by ConnectionManager
     super.dispose();
   }
 
@@ -90,21 +81,16 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
 
     try {
       if (!_protocol.isConnected) {
-        setState(() => _scanStatus = 'Detecting adapter (35000, 6801, 13400)...');
-        final target = await _protocol.detectAdapter();
-        if (target != null) {
-          final ok = await _protocol.connect(
-            host: target.host,
-            port: target.port,
-            useDoip: target.isDoip,
-          );
-          if (!ok) throw Exception('Adapter port ${target.port} connection rejected.');
-        } else {
-          // Attempt fast-path default directly
-          final ok = await _protocol.connect(host: '192.168.16.101', port: 35000);
-          if (!ok) {
-            throw Exception('Vehicle not detected at 192.168.16.101 or broadcast. Check connection & ignition.');
+        final ok = await ConnectionManager.instance.ensureLinked(_protocol);
+        if (!ok) {
+          if (mounted) {
+            setState(() {
+              _isScanning = false;
+              _errorMessage = 'ავტომობილი არ არის დაკავშირებული. გთხოვთ დაუკავშირდეთ მთავარი მენიუდან.';
+              _scanStatus = 'კავშირი არ არის';
+            });
           }
+          return;
         }
       }
 
@@ -1140,24 +1126,70 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
       return true;
     }).toList();
 
+    final langCtrl = LanguageController.instance;
+    final isGeo = langCtrl.isGeorgian;
+
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: bgColor,
         elevation: 0,
-        title: const Text(
-          'ECU Topology',
-          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+        title: Text(
+          isGeo ? 'ECU ტოპოლოგია' : 'ECU Topology',
+          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         actions: [
+          // Language Switcher Pill (GEO / ENG)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+            child: InkWell(
+              onTap: () async {
+                await LanguageController.instance.toggleLanguage();
+                if (mounted) setState(() {});
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'GEO',
+                      style: TextStyle(
+                        color: isGeo ? neonGreen : Colors.white38,
+                        fontSize: 10,
+                        fontWeight: isGeo ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    const Text('/', style: TextStyle(color: Colors.white24, fontSize: 10)),
+                    const SizedBox(width: 3),
+                    Text(
+                      'ENG',
+                      style: TextStyle(
+                        color: !isGeo ? neonGreen : Colors.white38,
+                        fontSize: 10,
+                        fontWeight: !isGeo ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.fact_check_outlined, color: neonGreen),
-            tooltip: 'I/M Emissions Readiness',
+            tooltip: isGeo ? 'გამონაბოლქვის მზადყოფნა' : 'I/M Emissions Readiness',
             onPressed: _showEmissionsReadinessModal,
           ),
           IconButton(
             icon: const Icon(Icons.refresh, color: neonGreen),
-            tooltip: 'Rescan Vehicle',
+            tooltip: isGeo ? 'ხელახალი სკანირება' : 'Rescan Vehicle',
             onPressed: _isScanning ? null : _startTopologyScan,
           ),
         ],
@@ -1185,7 +1217,7 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _scanResult?.vin ?? widget.initialVin ?? 'VIN: Detecting...',
+                              _scanResult?.vin ?? widget.initialVin ?? (isGeo ? 'VIN: იკითხება...' : 'VIN: Detecting...'),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -1197,7 +1229,7 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Chassis: ${_scanResult?.chassis ?? widget.initialChassis ?? "BMW F-Series"} • Modules: $respondingCount/${_topology.length}',
+                              '${isGeo ? "ძარა" : "Chassis"}: ${_scanResult?.chassis ?? widget.initialChassis ?? "BMW F-Series"} • ${isGeo ? "მოდულები" : "Modules"}: $respondingCount/${_topology.length}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(color: Colors.white60, fontSize: 12),
@@ -1217,7 +1249,9 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
                           ),
                         ),
                         child: Text(
-                          totalFaults > 0 ? '$totalFaults Faults' : 'All Clear',
+                          totalFaults > 0
+                              ? (isGeo ? '$totalFaults შეცდომა' : '$totalFaults Faults')
+                              : (isGeo ? 'სუფთაა' : 'All Clear'),
                           style: TextStyle(
                             color: totalFaults > 0 ? alertRed : neonGreen,
                             fontWeight: FontWeight.bold,
@@ -1282,12 +1316,12 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
                       child: TextField(
                         onChanged: (val) => setState(() => _searchQuery = val.trim()),
                         style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: const InputDecoration(
-                          hintText: 'Search 32 modules (e.g. DME, 0x12, VTG)...',
-                          hintStyle: TextStyle(color: Colors.white38, fontSize: 12),
-                          prefixIcon: Icon(Icons.search, color: Colors.white38, size: 18),
+                        decoration: InputDecoration(
+                          hintText: isGeo ? 'ძიება 32 მოდულში (მაგ. DME, 0x12, VTG)...' : 'Search 32 modules (e.g. DME, 0x12, VTG)...',
+                          hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+                          prefixIcon: const Icon(Icons.search, color: Colors.white38, size: 18),
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 10),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
                         ),
                       ),
                     ),
@@ -1299,10 +1333,10 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
                     style: const TextStyle(color: Colors.white, fontSize: 12),
                     underline: const SizedBox(),
                     items: [
-                      DropdownMenuItem(value: 'ALL', child: Text('ALL (${_topology.length})')),
-                      DropdownMenuItem(value: 'FAULTY', child: Text('FAULTY ($faultyCount)')),
-                      DropdownMenuItem(value: 'ONLINE', child: Text('ONLINE ($respondingCount)')),
-                      DropdownMenuItem(value: 'OFFLINE', child: Text('OFFLINE (${_topology.length - respondingCount})')),
+                      DropdownMenuItem(value: 'ALL', child: Text(isGeo ? 'ყველა (${_topology.length})' : 'ALL (${_topology.length})')),
+                      DropdownMenuItem(value: 'FAULTY', child: Text(isGeo ? 'შეცდომით ($faultyCount)' : 'FAULTY ($faultyCount)')),
+                      DropdownMenuItem(value: 'ONLINE', child: Text(isGeo ? 'აქტიური ($respondingCount)' : 'ONLINE ($respondingCount)')),
+                      DropdownMenuItem(value: 'OFFLINE', child: Text(isGeo ? 'გათიშული (${_topology.length - respondingCount})' : 'OFFLINE (${_topology.length - respondingCount})')),
                     ],
                     onChanged: (val) {
                       if (val != null) setState(() => _filterCategory = val);
@@ -1553,10 +1587,10 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
                           : () {
                               if (totalFaults == 0) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('✓ მეხსიერება სუფთაა — აქტიური შეცდომები (DTCs) არ ფიქსირდება.'),
+                                  SnackBar(
+                                    content: Text(isGeo ? 'მეხსიერება სუფთაა — აქტიური შეცდომები (DTCs) არ ფიქსირდება.' : 'Fault memory is clean — no active DTCs stored.'),
                                     backgroundColor: neonGreen,
-                                    duration: Duration(seconds: 2),
+                                    duration: const Duration(seconds: 2),
                                   ),
                                 );
                               } else {
@@ -1569,7 +1603,9 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
                         color: totalFaults == 0 ? neonGreen : alertRed,
                       ),
                       label: Text(
-                        totalFaults == 0 ? '0 DTCs (CLEAN)' : 'CLEAR $totalFaults DTCs',
+                        totalFaults == 0
+                            ? (isGeo ? '0 DTC (სუფთაა)' : '0 DTCs (CLEAN)')
+                            : (isGeo ? 'წაშლა ($totalFaults DTC)' : 'CLEAR $totalFaults DTCs'),
                         style: TextStyle(
                           color: totalFaults == 0 ? neonGreen : alertRed,
                           fontWeight: FontWeight.bold,
@@ -1597,7 +1633,9 @@ class _EcuScanScreenState extends State<EcuScanScreen> {
                             )
                           : const Icon(Icons.refresh, size: 20),
                       label: Text(
-                        _isScanning ? 'SCANNING...' : 'RE-SCAN ALL MODULES',
+                        _isScanning
+                            ? (isGeo ? 'სკანირება...' : 'SCANNING...')
+                            : (isGeo ? 'ყველა ბლოკის სკანირება' : 'RE-SCAN ALL MODULES'),
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       style: ElevatedButton.styleFrom(

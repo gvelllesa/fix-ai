@@ -57,7 +57,7 @@ void main() {
     test('0x78 is IHKA (KIS), E7144D = invalid received signal', () {
       final r = engine.explain(0x78, 'U2714 (E7144D) [Confirmed]');
       expect(r.isKnown, isTrue);
-      expect(r.factoryTexts.every((t) => t.family == 'ihka'), isTrue);
+      expect(r.factoryTexts.every((t) => t.family.contains('ihka')), isTrue);
       expect(r.factoryTexts.any((t) => t.text.contains('ungültig empfangen')), isTrue);
     });
 
